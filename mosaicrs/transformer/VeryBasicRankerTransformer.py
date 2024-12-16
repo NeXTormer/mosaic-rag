@@ -1,6 +1,7 @@
 from mosaicrs.transformer.Transformer import Transformer
 
 
+
 class VeryBasicRankerTransformer(Transformer):
     def __init__(self):
         pass
