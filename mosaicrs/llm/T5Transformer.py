@@ -4,7 +4,6 @@ from transformers import T5Tokenizer, T5ForConditionalGeneration
 
 from mosaicrs.llm.LLMInterface import LLMInterface
 
-# TODO: bad name because "Transformer"
 class T5Transformer(LLMInterface):
     def __init__(self, model: str, system_prompt: Optional[str] = None):
         super().__init__(model, system_prompt)

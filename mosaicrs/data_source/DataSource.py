@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
+
 
 class DataSource(ABC):
 
     @abstractmethod
-    def request_data(self, query: str, arguments: dict[str, Any] | None):
+    def request_data(self, data: PipelineIntermediate) -> PipelineIntermediate:
         pass

@@ -3,22 +3,25 @@ import requests
 import json
 import pandas as pd
 import regex as re
-import duckdb
 
 from mosaicrs.data_source.DataSource import DataSource
-
-#TODO: Überlegen, wie wir die Query zusammen mit den Argumenten übergeben, da die Query an sich auch ein Arguement ist an sich.
+from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 
 
 class MosaicDataSource(DataSource):
     SEARCH_PATH = "/search?"
+    FULL_TEXT_PATH = '/full-text?'
 
 
     def __init__(self, url: str = "http://localhost:8008"):
         self.mosaic_url = url
 
 
-    def request_data(self, query: str, arguments: dict[str, Any] = None, database_text_extraction: bool = False) -> pd.DataFrame:
+    def request_data(self, data: PipelineIntermediate) -> PipelineIntermediate:
+        query = data.query
+        arguments = data.arguments
+
+
         if re.search("^[a-zA-Z]+(\+[a-zA-Z]+)*$", query) is None:
             query = '+'.join(query.split(' '))
         
@@ -26,7 +29,8 @@ class MosaicDataSource(DataSource):
             arguments = {}
         elif "q" in arguments and arguments["q"] != query:
             print("Error: Multiple different search terms found!")
-            return None
+            raise ValueError("Multiple different search terms found!") # Note: don't return null as an error, this is python, not C xD
+
         elif "q" not in arguments:
             arguments["q"] = query
 
@@ -43,40 +47,17 @@ class MosaicDataSource(DataSource):
 
         df_docs = pd.DataFrame(docs)
 
-        if not database_text_extraction:
-            return df_docs
+        # Load full text
+
+        df_docs['full_text'] = df_docs.apply(lambda row: self._request_full_text(row['id']), axis=1)
 
 
-        #TODO: Abklären wie wir zu Infos kommen
-        #Temporäre DB Anbindung
+        data.data = df_docs
+        return data
 
-        ids = df_docs["id"].to_list()
 
-        duckdb_file = "/tmp/mosaic_db"
-        con = None
+    def _request_full_text(self, doc_id: str) -> str:
+        response = requests.get(''.join([self.mosaic_url, MosaicDataSource.FULL_TEXT_PATH]), params={'id': doc_id})
+        json_data = json.loads(response.text)
 
-        try:
-            con = duckdb.connect(duckdb_file, read_only = True)
-
-        
-            combined_search_ids = ", ".join(["'" + str(doc_id) + "'" for doc_id in ids])
-
-            query = f"""SELECT * 
-                        FROM owi_simplewiki
-                        WHERE id IN ({combined_search_ids})"""
-            df = con.execute(query).fetchdf()
-
-            con.close()
-
-            # for text in df["plain_text"].to_list():
-            #     print(text + "\n\n")
-
-            df_docs["textSnippet"] = df["plain_text"]
-
-            return df_docs
-
-        except Exception as e:
-            print(f"An error occured:{e}")
-        finally:
-            if con is not None:
-                con.close()
+        return json_data['fullText']

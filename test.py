@@ -1,36 +1,19 @@
 from mosaicrs.data_source.MosaicDataSource import MosaicDataSource
-from mosaicrs.endpoint.SummarizerEndpoint import SummarizerEndpoint
 from mosaicrs.llm.T5Transformer import T5Transformer
-from mosaicrs.transformer.VeryBasicRankerTransformer import VeryBasicRankerTransformer
-
-t5 = T5Transformer(model='google/flan-t5-base')
-
-
-source = MosaicDataSource()
-#TODO: Namensgebung nochmal überdenken, RankerTransformer hört sich sehr stark nach LLM transformers sein
-searcher = VeryBasicRankerTransformer()
-summarizer = SummarizerEndpoint(llm=t5)
+from mosaicrs.pipeline.Pipeline import Pipeline
+from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
+from mosaicrs.pipeline_steps.SummarizerStep import SummarizerStep
 
 
-params = {
-    "index":"simplewiki",
-    "limit":"20",
-    "lang":"eng"
-}
 
-query = 'werner'
+t5 = T5Transformer('google/flan-t5-base')
 
-#TODO: Object überdenken, welches zum Hin- und Hergeben zwischen den Komponenten dienen kann
+pipeline = Pipeline(steps=[MosaicDataSource(), SummarizerStep(llm=t5), ])
 
 
-data = source.request_data(query, params, True)
-filtered = searcher.transform(data, query)
-summary = summarizer.process(filtered, query)
 
-print("Summarizing for query: ", query)
-print(summary["textSnippet"])
+result = pipeline.run(data=PipelineIntermediate(query='Werner', arguments={'limit': 1, 'index': 'simplewiki', 'lang': 'eng'}))
 
-for elem in summary["textSnippet"]:
-    print(len(elem))
-    print(elem)
-    print("\n")
+df = result.data
+print(df['summary'])
+
