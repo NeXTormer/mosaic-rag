@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+
+[project]
+name = "mosaicrs"
+version = "0.0.1"
+authors = [
+  { name="Daniel Scharf", email="daniel.scharf@tugraz.at" },
+  { name="Felix Holz", email="felix.holz@me.com" },
+]
+description = "A retrieval system library for search and RAG"
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/pypa/sampleproject"
+Issues = "https://github.com/pypa/sampleproject/issues"
