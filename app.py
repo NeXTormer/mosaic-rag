@@ -1,10 +1,16 @@
 from flask import Flask
 from flask import request
+from flask import Response
+
+from flask_cors import CORS
+
 
 from mosaicrs.data_source.MosaicDataSource import MosaicDataSource
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 
 app = Flask(__name__)
+CORS(app)
+
 
 @app.route("/")
 def hello_world():
@@ -20,7 +26,9 @@ def search():
 
     ds = MosaicDataSource()
 
-    return ds.request_data(PipelineIntermediate(query=query, arguments={'limit': 20, 'index': 'simplewiki', 'lang': 'eng'})).data.to_json()
+
+    response = Response(ds.request_data(PipelineIntermediate(query=query, arguments={'limit': 20})).data.to_json(orient='records'), mimetype='application/json')
+    return response
 
 
 
