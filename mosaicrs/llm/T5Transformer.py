@@ -1,7 +1,5 @@
 from typing import Optional, List, Dict
-
 from transformers import T5Tokenizer, T5ForConditionalGeneration
-
 from mosaicrs.llm.LLMInterface import LLMInterface
 
 class T5Transformer(LLMInterface):
@@ -10,8 +8,6 @@ class T5Transformer(LLMInterface):
 
         self.tokenizer = T5Tokenizer.from_pretrained(self.model)
         self.model = T5ForConditionalGeneration.from_pretrained(self.model)
-
-
 
     def generate(self, prompt: str):
         input_ids = self.tokenizer.encode(

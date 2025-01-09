@@ -3,61 +3,83 @@ import requests
 import json
 import pandas as pd
 import regex as re
-
 from mosaicrs.data_source.DataSource import DataSource
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 
-
 class MosaicDataSource(DataSource):
-    SEARCH_PATH = "/search?"
-    FULL_TEXT_PATH = '/full-text?'
 
-
-    def __init__(self, url: str = "http://localhost:8008"):
+    def __init__(self, target_column_name:str, consider_query:bool = True, url: str = "http://localhost:8008", default_search_path: str = "/search?", default_full_text_path: str = "/full-text?"):
         self.mosaic_url = url
+        self.search_path_part = default_search_path
+        self.full_text_path_part = default_full_text_path
+        self.consider_query = consider_query
+        self.target_column_name = target_column_name
 
+    def get_info(self) -> dict:
+        return {
+            "target_column_name" : "Column name in the resulting dataframe in the PipelineIntermediate, that contains the requested data.",
+            "consider_query" : "If the query gets added to the search. Default:True",
+            "url" : "Base url for mosaic search. Default: 'http://localhost:8008'",
+            "default_search_path" : "Search extension for the url. Default: '/search?'",
+            "default_full_text_path" : "Full text extension for the url. Default: '/full-text?'"
+            }
 
     def request_data(self, data: PipelineIntermediate) -> PipelineIntermediate:
-        query = data.query
-        arguments = data.arguments
-
-
-        if re.search("^[a-zA-Z]+(\+[a-zA-Z]+)*$", query) is None:
-            query = '+'.join(query.split(' '))
         
-        if arguments is None:
-            arguments = {}
-        elif "q" in arguments and arguments["q"] != query:
-            print("Error: Multiple different search terms found!")
-            raise ValueError("Multiple different search terms found!") # Note: don't return null as an error, this is python, not C xD
+        if self.consider_query:
+            #Check query for multiple words and if so convert to correct format
+            if re.search("^[a-zA-Z]+(\+[a-zA-Z]+)*$", data.query) is None:
+                query_words = [word for word in data.query.split(' ') if bool(word.strip())]
+                converted_query = '+'.join(query_words)
+            
+            #Check arguments for query
+            if (data.query is None and "q" not in data.arguments):
+                raise ValueError("Error: consider_query is true but not query is given. Neither in the PipelineIntermediate or in the arguments!")
+            elif ("q" in data.arguments and data.arguments["q"] != data.query):
+                raise ValueError("Error: multiple different search queries found!")
 
-        elif "q" not in arguments:
-            arguments["q"] = query
+            if "q" not in data.arguments:
+                data.arguments["q"] = data.query
 
-        
-        response = requests.get(''.join([self.mosaic_url, MosaicDataSource.SEARCH_PATH]), params=arguments)
+        else:
+            if "q" in data.arguments:
+                data.arguments.pop("q")
+
+
+
+        response = requests.get(''.join([self.mosaic_url, self.search_path_part]), params=data.arguments)
+
+        if response.status_code == 404:
+            raise ValueError("Error: Source not found")
+
         json_data = json.loads(response.text)
 
-        docs = []
+        if "results" not in json_data:
+            return pd.DataFrame()
 
-        for x in json_data['results']:
-            for k, v in x.items():
-                for d in v:
-                    docs.append(d)
-
-        df_docs = pd.DataFrame(docs)
-
-        # Load full text
-
-        df_docs['full_text'] = df_docs.apply(lambda row: self._request_full_text(row['id']), axis=1)
-
-
+        extracted_docs = []
+        for index_result in json_data["results"]:
+            for _,v in index_result.items():
+                for doc in v:
+                    extracted_docs.append(doc)
+        
+        df_docs = pd.DataFrame(extracted_docs)
+        df_docs["_original_ranking_"] = df_docs.index
+        df_docs[self.target_column_name] = df_docs.apply(lambda row: self._request_full_text(row['id']), axis=1)
         data.data = df_docs
+        
+        data.history[str(len(data.history)+1)] = data.data.copy(deep=True)
+
         return data
 
-
     def _request_full_text(self, doc_id: str) -> str:
-        response = requests.get(''.join([self.mosaic_url, MosaicDataSource.FULL_TEXT_PATH]), params={'id': doc_id})
-        json_data = json.loads(response.text)
+        response = requests.get(''.join([self.mosaic_url, self.full_text_path_part]), params={'id': doc_id})
+        if response.status_code == 200:
+            json_data = json.loads(response.text)
+            return json_data['fullText']
+        else:
+            return ""
 
-        return json_data['fullText']
+    
+
+       

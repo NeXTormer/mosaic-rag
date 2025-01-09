@@ -1,19 +1,28 @@
 from mosaicrs.data_source.MosaicDataSource import MosaicDataSource
-from mosaicrs.llm.T5Transformer import T5Transformer
+from mosaicrs.pipeline_steps.SummarizerStep import SupportedSummarizerModels
 from mosaicrs.pipeline.Pipeline import Pipeline
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline_steps.SummarizerStep import SummarizerStep
+from mosaicrs.pipeline_steps.EmbeddingRerankerStep import EmbeddingRerankerStep, Supported_Sentence_Transformers
+
+mds = MosaicDataSource(target_column_name="fullText")
+emrr = EmbeddingRerankerStep(source_column_name="fullText")
+sum = SummarizerStep(selected_model=SupportedSummarizerModels.T5_Base, source_column_name="fullText", target_column_name="summary")
 
 
+pipeline = Pipeline(steps=[mds, emrr, sum])
 
-t5 = T5Transformer('google/flan-t5-base')
+result, success = pipeline.run(data=PipelineIntermediate(query='Sport in Austria', arguments={'limit': 10, 'index': 'simplewiki', 'lang': 'eng'}))
 
-pipeline = Pipeline(steps=[MosaicDataSource(), SummarizerStep(llm=t5), ])
+if success:
+    df = result.data
+    for i, text in enumerate(df["summary"].to_list()):
+        print(f"{i+1}: {text}")
 
+    print("\n\n")
 
-
-result = pipeline.run(data=PipelineIntermediate(query='Werner', arguments={'limit': 1, 'index': 'simplewiki', 'lang': 'eng'}))
-
-df = result.data
-print(df['summary'])
+    for i, text in enumerate(df["_original_ranking_"].to_list()):
+        print(f"{i+1}: {text}")    
+else:
+    print("Abort pipeline")
 
