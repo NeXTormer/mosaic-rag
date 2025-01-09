@@ -3,29 +3,20 @@ import requests
 import json
 import pandas as pd
 import regex as re
-from mosaicrs.data_source.DataSource import DataSource
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
+from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 
-class MosaicDataSource(DataSource):
 
-    def __init__(self, target_column_name:str, consider_query:bool = True, url: str = "http://localhost:8008", default_search_path: str = "/search?", default_full_text_path: str = "/full-text?"):
+class MosaicDataSource(PipelineStep):
+
+    def __init__(self, destination_column: str, consider_query:bool = True, url: str = "http://localhost:8008", default_search_path: str = "/search?", default_full_text_path: str = "/full-text?"):
         self.mosaic_url = url
         self.search_path_part = default_search_path
         self.full_text_path_part = default_full_text_path
         self.consider_query = consider_query
-        self.target_column_name = target_column_name
+        self.target_column_name = destination_column
 
-    def get_info(self) -> dict:
-        return {
-            "target_column_name" : "Column name in the resulting dataframe in the PipelineIntermediate, that contains the requested data.",
-            "consider_query" : "If the query gets added to the search. Default:True",
-            "url" : "Base url for mosaic search. Default: 'http://localhost:8008'",
-            "default_search_path" : "Search extension for the url. Default: '/search?'",
-            "default_full_text_path" : "Full text extension for the url. Default: '/full-text?'"
-            }
-
-    def request_data(self, data: PipelineIntermediate) -> PipelineIntermediate:
-        
+    def transform(self, data: PipelineIntermediate) -> PipelineIntermediate:
         if self.consider_query:
             #Check query for multiple words and if so convert to correct format
             if re.search("^[a-zA-Z]+(\+[a-zA-Z]+)*$", data.query) is None:
@@ -46,7 +37,6 @@ class MosaicDataSource(DataSource):
                 data.arguments.pop("q")
 
 
-
         response = requests.get(''.join([self.mosaic_url, self.search_path_part]), params=data.arguments)
 
         if response.status_code == 404:
@@ -55,11 +45,11 @@ class MosaicDataSource(DataSource):
         json_data = json.loads(response.text)
 
         if "results" not in json_data:
-            return pd.DataFrame()
+            return data
 
         extracted_docs = []
         for index_result in json_data["results"]:
-            for _,v in index_result.items():
+            for _, v in index_result.items():
                 for doc in v:
                     extracted_docs.append(doc)
         
@@ -71,6 +61,20 @@ class MosaicDataSource(DataSource):
         data.history[str(len(data.history)+1)] = data.data.copy(deep=True)
 
         return data
+
+
+    def get_info(self) -> dict:
+        return {
+            "destination_column": "Column name containing the requested data. Default: full_text.",
+            "consider_query": "If the query gets added to the search. Default: True.",
+            "url": "URL of the mosaic server. Default: 'http://localhost:8008'.",
+            "default_search_path": "Search extension for the url. Default: '/search?'",
+            "default_full_text_path": "Full text extension for the url. Default: '/full-text?'"
+            }
+
+
+    def get_name(self) -> str:
+        return "MosaicDataSource"
 
     def _request_full_text(self, doc_id: str) -> str:
         response = requests.get(''.join([self.mosaic_url, self.full_text_path_part]), params={'id': doc_id})

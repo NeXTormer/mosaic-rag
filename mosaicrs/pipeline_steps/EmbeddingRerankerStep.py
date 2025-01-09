@@ -3,31 +3,21 @@ from sentence_transformers import SentenceTransformer
 from enum import Enum
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 
-class Supported_Sentence_Transformers(Enum):
+class SupportedSentenceTransformers(Enum):
     Snowflake = "Snowflake/snowflake-arctic-embed-s"
 
 
 class EmbeddingRerankerStep(PipelineStep):
 
-    def __init__(self, source_column_name:str, query:str = None, selected_sentence_transformer:Supported_Sentence_Transformers = Supported_Sentence_Transformers.Snowflake):
-        self.sentence_transformer = SentenceTransformer(selected_sentence_transformer.value)
-        self.source_column_name = source_column_name
+    def __init__(self, source_column: str, query: str = None, model: SupportedSentenceTransformers = SupportedSentenceTransformers.Snowflake):
+        self.sentence_transformer = SentenceTransformer(model.value)
+        self.source_column_name = source_column
         if query is not None:
             self.query = query
             self.use_new_query = True
         else:
             self.query = None
             self.use_new_query = False
-        
-    def get_info(self) -> dict:
-        return {
-            "source_column_name" : "Name of the source column in the PipelineIntermediate dataframe.",
-            "query" : "Additional query if one don't want to use the starting query",
-            "selected_sentence_transformer" : "Model for embedding creation. Default: Snowflake/snowflake-arctic-embed-s"
-        }
-
-    def get_name(self) -> str:
-        return "EmbeddingReranker"
 
     def transform(self, data: PipelineIntermediate) -> PipelineIntermediate:
         source_docs = data.data[self.source_column_name].to_list()
@@ -44,6 +34,15 @@ class EmbeddingRerankerStep(PipelineStep):
 
         return data
 
-        
 
+    def get_info(self) -> dict:
+        return {
+            "source_column": "Embeddings are generated from this column",
+            "query": "Optional. Replaces the existing query.",
+            "model": "Embedding model. Default: Snowflake/snowflake-arctic-embed-s"
+        }
+
+
+    def get_name(self) -> str:
+        return "EmbeddingReranker"
     

@@ -13,24 +13,14 @@ class SupportedSummarizerModels(Enum):
 
 class SummarizerStep(PipelineStep):
 
-    def __init__(self, source_column_name: str, target_column_name: str, selected_model: SupportedSummarizerModels = SupportedSummarizerModels.Flan_T5_Base, system_prompt: str = "summarize:"):
-        if selected_model == SupportedSummarizerModels.Flan_T5_Base or selected_model == SupportedSummarizerModels.T5_Base:
-            self.llm = T5Transformer(selected_model.value)
-        self.source_column_name = source_column_name
-        self.target_column_name = target_column_name
+    def __init__(self, source_column: str, destination_column: str, model: SupportedSummarizerModels = SupportedSummarizerModels.Flan_T5_Base, system_prompt: str = "summarize:"):
+        if model == SupportedSummarizerModels.Flan_T5_Base or model == SupportedSummarizerModels.T5_Base:
+            self.llm = T5Transformer(model.value)
+        self.source_column_name = source_column
+        self.target_column_name = destination_column
         self.system_prompt = system_prompt
 
-    def get_info(self) -> dict:
-        return {
-            'selected_model' : 'LLM model instance to use for summarization.',
-            'source_column_name' : 'Column name in PipelineIntermediate.data that should be summarized.',
-            'target_column_name' : 'Column name in PipelineIntermediate.data where the summary should be saved.', 
-            'system_prompt' : 'System prompt for summarization. Default="Summarize in 40 words:" ',
-        }
-
-    def get_name(self) -> str:
-        return "Summarizer"
-
+    # style note: most important class (in this case 'transform' should be at the top, below constructor)
     def transform(self, data: PipelineIntermediate):
         full_texts = data.data[self.source_column_name].to_list()
         summarized_texts = []
@@ -44,6 +34,17 @@ class SummarizerStep(PipelineStep):
 
         return data
 
+
+    def get_info(self) -> dict:
+        return {
+            'model' : 'LLM model instance to use for summarization.',
+            'source_column' : 'Column name in PipelineIntermediate.data that should be summarized.',
+            'destination_column' : 'Column name in PipelineIntermediate.data where the summary should be saved.',
+            'system_prompt' : 'System prompt for summarization. Default="Summarize in 40 words:" ',
+        }
+
+    def get_name(self) -> str:
+        return "LLM Summarizer"
 
     
         

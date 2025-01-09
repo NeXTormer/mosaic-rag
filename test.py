@@ -1,13 +1,14 @@
-from mosaicrs.data_source.MosaicDataSource import MosaicDataSource
+from mosaicrs.pipeline_steps.MosaicDataSource import MosaicDataSource
 from mosaicrs.pipeline_steps.SummarizerStep import SupportedSummarizerModels
 from mosaicrs.pipeline.Pipeline import Pipeline
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline_steps.SummarizerStep import SummarizerStep
-from mosaicrs.pipeline_steps.EmbeddingRerankerStep import EmbeddingRerankerStep, Supported_Sentence_Transformers
+from mosaicrs.pipeline_steps.EmbeddingRerankerStep import EmbeddingRerankerStep
 
-mds = MosaicDataSource(target_column_name="fullText")
-emrr = EmbeddingRerankerStep(source_column_name="fullText")
-sum = SummarizerStep(selected_model=SupportedSummarizerModels.T5_Base, source_column_name="fullText", target_column_name="summary")
+mds = MosaicDataSource(destination_column="fullText")
+emrr = EmbeddingRerankerStep(source_column="fullText")
+sum = SummarizerStep(model=SupportedSummarizerModels.T5_Base, source_column="fullText", destination_column="summary")
+
 
 
 pipeline = Pipeline(steps=[mds, emrr, sum])

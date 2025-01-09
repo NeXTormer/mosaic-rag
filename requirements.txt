@@ -3,5 +3,9 @@ pandas~=2.2.3
 sentencepiece~=0.2.0
 transformers~=4.47.0
 torch
-flask
-flask-cors
+flask~=3.1.0
+flask-cors~=5.0.0
+
+regex~=2024.11.6
+tqdm~=4.67.1
+sentence-transformers~=3.3.1

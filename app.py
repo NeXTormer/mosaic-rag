@@ -5,7 +5,7 @@ from flask import Response
 from flask_cors import CORS
 
 
-from mosaicrs.data_source.MosaicDataSource import MosaicDataSource
+from mosaicrs.pipeline_steps.MosaicDataSource import MosaicDataSource
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 
 app = Flask(__name__)
@@ -25,10 +25,14 @@ def search():
     query = request.args.get('q')
 
     ds = MosaicDataSource()
-
-
     response = Response(ds.request_data(PipelineIntermediate(query=query, arguments={'limit': 20})).data.to_json(orient='records'), mimetype='application/json')
     return response
+
+
+@app.get('/pipeline/run')
+def pipeline_run():
+
+
 
 
 
