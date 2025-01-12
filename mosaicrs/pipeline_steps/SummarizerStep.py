@@ -41,10 +41,13 @@ class SummarizerStep(PipelineStep):
     @staticmethod
     def get_info() -> dict:
         return {
-            'model': 'LLM model instance to use for summarization. Can be any T5 transformer model.',
-            'source_column': 'Column name in PipelineIntermediate.data that should be summarized.',
-            'destination_column': 'Column name in PipelineIntermediate.data where the summary should be saved.',
-            'system_prompt': 'System prompt for summarization. Default="Summarize: " ',
+            "name": SummarizerStep.get_name(),
+            "parameters": {
+                'model': 'LLM model instance to use for summarization. Can be any T5 transformer model.',
+                'source_column': 'Column name in PipelineIntermediate.data that should be summarized.',
+                'destination_column': 'Column name in PipelineIntermediate.data where the summary should be saved.',
+                'system_prompt': 'System prompt for summarization. Default="Summarize: " ',
+            }
         }
 
     @staticmethod

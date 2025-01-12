@@ -48,8 +48,13 @@ def run(pipeline):
 
 
 def get_pipeline_info():
+    all_steps = {}
     for k, v in pipeline_steps_mapping.items():
-        print(v.get_info())
+        info = v.get_info()
+
+        all_steps[k] = info
+
+    return json.dumps(all_steps)
 
 
 def _get_class_from_id_and_parameters(step_id: str, step_parameters: dict) -> PipelineStep:

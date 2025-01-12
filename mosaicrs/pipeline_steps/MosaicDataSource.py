@@ -68,12 +68,15 @@ class MosaicDataSource(PipelineStep):
     @staticmethod
     def get_info() -> dict:
         return {
-            "output_colum": "Column name containing the requested data. Default: full_text.",
-            "consider_query": "If the query gets added to the search. Default: True.",
-            "url": "URL of the mosaic server. Default: 'http://localhost:8008'.",
-            "default_search_path": "Search extension for the url. Default: '/search?'",
-            "default_full_text_path": "Full text extension for the url. Default: '/full-text?'"
+            "name": MosaicDataSource.get_name(),
+            "parameters": {
+                "output_colum": "Column name containing the requested data. Default: full_text.",
+                "consider_query": "If the query gets added to the search. Default: True.",
+                "url": "URL of the mosaic server. Default: 'http://localhost:8008'.",
+                "default_search_path": "Search extension for the url. Default: '/search?'",
+                "default_full_text_path": "Full text extension for the url. Default: '/full-text?'"
             }
+        }
 
     @staticmethod
     def get_name() -> str:

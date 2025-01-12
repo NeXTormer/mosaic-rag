@@ -1,3 +1,4 @@
+
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from sentence_transformers import SentenceTransformer
 from enum import Enum
@@ -37,9 +38,12 @@ class EmbeddingRerankerStep(PipelineStep):
     @staticmethod
     def get_info() -> dict:
         return {
-            "input_column": "Embeddings are generated from this column",
-            "query": "Optional. Replaces the existing query.",
-            "model": "Embedding model. Default: Snowflake/snowflake-arctic-embed-s"
+            "name": EmbeddingRerankerStep.get_name(),
+            "parameters": {
+                "input_column": "Embeddings are generated from this column",
+                "query": "Optional. Replaces the existing query.",
+                "model": "Embedding model. Default: Snowflake/snowflake-arctic-embed-s"
+            }
         }
 
     @staticmethod
