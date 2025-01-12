@@ -20,7 +20,7 @@ class MosaicDataSource(PipelineStep):
 
     def transform(self, data: PipelineIntermediate) -> PipelineIntermediate:
         if self.consider_query:
-            #Check query for multiple words and if so convert to correct format
+            # Check query for multiple words and if so convert to correct format
             if re.search("^[a-zA-Z]+(\+[a-zA-Z]+)*$", data.query) is None:
                 query_words = [word for word in data.query.split(' ') if bool(word.strip())]
                 converted_query = '+'.join(query_words)
@@ -71,10 +71,10 @@ class MosaicDataSource(PipelineStep):
             "name": MosaicDataSource.get_name(),
             "parameters": {
                 "output_colum": "Column name containing the requested data. Default: full_text.",
-                "consider_query": "If the query gets added to the search. Default: True.",
+                # "consider_query": "If the query gets added to the search. Default: True.",
                 "url": "URL of the mosaic server. Default: 'http://localhost:8008'.",
-                "default_search_path": "Search extension for the url. Default: '/search?'",
-                "default_full_text_path": "Full text extension for the url. Default: '/full-text?'"
+                # "default_search_path": "Search extension for the url. Default: '/search?'",
+                # "default_full_text_path": "Full text extension for the url. Default: '/full-text?'"
             }
         }
 

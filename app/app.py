@@ -29,9 +29,12 @@ def search():
     return response
 
 
-@app.get('/pipeline/run')
+@app.post('/pipeline/run')
 def pipeline_run():
     pipeline = request.get_json()
+
+    print("Running pipeline with parameters")
+    print(pipeline)
 
     result = run(pipeline)
     response = Response(

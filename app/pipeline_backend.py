@@ -27,6 +27,8 @@ def run(pipeline):
         parameters = steps['parameters']
         del steps['parameters']
 
+    print("Running pipeline. Query: " + query)
+
     keys = sorted([int(x) for x in steps.keys()])
 
     data = PipelineIntermediate(query=query, arguments=parameters)
@@ -59,6 +61,7 @@ def get_pipeline_info():
 
 def _get_class_from_id_and_parameters(step_id: str, step_parameters: dict) -> PipelineStep:
     cls = pipeline_steps_mapping[step_id]
+
     instance = cls(**step_parameters)
 
     return instance
