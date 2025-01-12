@@ -3,15 +3,15 @@ from sentence_transformers import SentenceTransformer
 from enum import Enum
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 
-class SupportedSentenceTransformers(Enum):
-    Snowflake = "Snowflake/snowflake-arctic-embed-s"
+# class SupportedSentenceTransformers(Enum):
+#     Snowflake = "Snowflake/snowflake-arctic-embed-s"
 
 
 class EmbeddingRerankerStep(PipelineStep):
 
-    def __init__(self, source_column: str, query: str = None, model: SupportedSentenceTransformers = SupportedSentenceTransformers.Snowflake):
-        self.sentence_transformer = SentenceTransformer(model.value)
-        self.source_column_name = source_column
+    def __init__(self, input_column: str, query: str = None, model: str = "Snowflake/snowflake-arctic-embed-s"):
+        self.sentence_transformer = SentenceTransformer(model)
+        self.source_column_name = input_column
         if query is not None:
             self.query = query
             self.use_new_query = True
@@ -34,15 +34,15 @@ class EmbeddingRerankerStep(PipelineStep):
 
         return data
 
-
-    def get_info(self) -> dict:
+    @staticmethod
+    def get_info() -> dict:
         return {
-            "source_column": "Embeddings are generated from this column",
+            "input_column": "Embeddings are generated from this column",
             "query": "Optional. Replaces the existing query.",
             "model": "Embedding model. Default: Snowflake/snowflake-arctic-embed-s"
         }
 
-
-    def get_name(self) -> str:
+    @staticmethod
+    def get_name() -> str:
         return "EmbeddingReranker"
     

@@ -5,16 +5,18 @@ import pandas as pd
 import regex as re
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
+import logging
 
 
 class MosaicDataSource(PipelineStep):
 
-    def __init__(self, destination_column: str, consider_query:bool = True, url: str = "http://localhost:8008", default_search_path: str = "/search?", default_full_text_path: str = "/full-text?"):
+    def __init__(self, output_column: str = 'full_text', consider_query: bool = True, url: str = "http://localhost:8008", default_search_path: str = "/search?", default_full_text_path: str = "/full-text?"):
         self.mosaic_url = url
         self.search_path_part = default_search_path
         self.full_text_path_part = default_full_text_path
         self.consider_query = consider_query
-        self.target_column_name = destination_column
+        self.target_column_name = output_column
+
 
     def transform(self, data: PipelineIntermediate) -> PipelineIntermediate:
         if self.consider_query:
@@ -35,16 +37,16 @@ class MosaicDataSource(PipelineStep):
         else:
             if "q" in data.arguments:
                 data.arguments.pop("q")
-
-
         response = requests.get(''.join([self.mosaic_url, self.search_path_part]), params=data.arguments)
 
         if response.status_code == 404:
+            logging.error('Source not found')
             raise ValueError("Error: Source not found")
 
         json_data = json.loads(response.text)
 
         if "results" not in json_data:
+            logging.error('no \'results\' in json data')
             return data
 
         extracted_docs = []
@@ -60,20 +62,21 @@ class MosaicDataSource(PipelineStep):
         
         data.history[str(len(data.history)+1)] = data.data.copy(deep=True)
 
+
         return data
 
-
-    def get_info(self) -> dict:
+    @staticmethod
+    def get_info() -> dict:
         return {
-            "destination_column": "Column name containing the requested data. Default: full_text.",
+            "output_colum": "Column name containing the requested data. Default: full_text.",
             "consider_query": "If the query gets added to the search. Default: True.",
             "url": "URL of the mosaic server. Default: 'http://localhost:8008'.",
             "default_search_path": "Search extension for the url. Default: '/search?'",
             "default_full_text_path": "Full text extension for the url. Default: '/full-text?'"
             }
 
-
-    def get_name(self) -> str:
+    @staticmethod
+    def get_name() -> str:
         return "MosaicDataSource"
 
     def _request_full_text(self, doc_id: str) -> str:

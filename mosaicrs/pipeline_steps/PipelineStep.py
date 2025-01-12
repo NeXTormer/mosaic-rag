@@ -9,10 +9,12 @@ class PipelineStep(ABC):
     def transform(self, data: PipelineIntermediate) -> PipelineIntermediate:
         pass
 
+    @staticmethod
     @abstractmethod
-    def get_info(self) -> dict:
+    def get_info() -> dict:
         pass
 
+    @staticmethod
     @abstractmethod
-    def get_name(self) -> str:
+    def get_name() -> str:
         pass
