@@ -37,6 +37,8 @@ class MosaicDataSource(PipelineStep):
         else:
             if "q" in data.arguments:
                 data.arguments.pop("q")
+
+        data.arguments['limit'] = 4
         response = requests.get(''.join([self.mosaic_url, self.search_path_part]), params=data.arguments)
 
         if response.status_code == 404:
@@ -70,11 +72,24 @@ class MosaicDataSource(PipelineStep):
         return {
             "name": MosaicDataSource.get_name(),
             "parameters": {
-                "output_colum": "Column name containing the requested data. Default: full_text.",
-                # "consider_query": "If the query gets added to the search. Default: True.",
-                "url": "URL of the mosaic server. Default: 'http://localhost:8008'.",
-                # "default_search_path": "Search extension for the url. Default: '/search?'",
-                # "default_full_text_path": "Full text extension for the url. Default: '/full-text?'"
+                'output_column': {
+                    'title': 'Output column name',
+                    'description': 'The column where the full text of each document is stored.',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'required': True,
+                    'supported-values': ['full-text'],
+                    'default': 'full-text',
+                },
+                'url': {
+                    'title': 'MOSAIC service URL',
+                    'description': 'The URL of the MOSAIC instance to use. Must be accessible from the public web.',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'required': True,
+                    'supported-values': ['http://localhost:8008', 'https://mosaic.felixholz.com', 'https://mosaic.ows.eu/service/api/'],
+                    'default': 'http://localhost:8008',
+                },
             }
         }
 

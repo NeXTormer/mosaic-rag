@@ -43,10 +43,38 @@ class SummarizerStep(PipelineStep):
         return {
             "name": SummarizerStep.get_name(),
             "parameters": {
-                'model': 'LLM model instance to use for summarization. Can be any T5 transformer model.',
-                'input_column': 'Column name in PipelineIntermediate.data that should be summarized.',
-                'output_column': 'Column name in PipelineIntermediate.data where the summary should be saved.',
-                'system_prompt': 'Prompt for summarization. Default="Summarize: " ',
+                'model': {
+                    'title': 'Summarizer model',
+                    'description': 'LLM model instance to use for summarization. Can be any T5 transformer model.',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'supported-values': ['google/flan-t5-base'],
+                    'default': 'google/flan-t5-base',
+                },
+                'input_column': {
+                    'title': 'Input column name',
+                    'description': 'Column to use for summarization.',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'supported-values': ['full-text'],
+                    'default': 'full-text',
+                },
+                'output_column': {
+                    'title': 'Output column name',
+                    'description': 'The summarized text gets saved to this column..',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'supported-values': ['summary'],
+                    'default': 'summary',
+                },
+                'sytem_prompt': {
+                    'title': 'Summarizing instruction',
+                    'description': 'This instruction is given to the LLM to summarize the text.',
+                    'type': 'string',
+                    'enforce-limit': False,
+                    'default': 'Summarize: ',
+                },
+
             }
         }
 

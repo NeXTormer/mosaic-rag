@@ -40,9 +40,31 @@ class EmbeddingRerankerStep(PipelineStep):
         return {
             "name": EmbeddingRerankerStep.get_name(),
             "parameters": {
-                "input_column": "Embeddings are generated from this column",
-                "query": "Optional. Replaces the existing query.",
-                "model": "Embedding model. Default: Snowflake/snowflake-arctic-embed-s"
+                'input_column': {
+                    'title': 'Input column name',
+                    'description': 'The document embeddings are generated for this column.',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'required': True,
+                    'supported-values': ['full-text', 'summary'],
+                    'default': 'full-text',
+                },
+                'query': {
+                    'title': 'Optional query',
+                    'description': 'An additional query, different from the main query, used for reranking. Optional.',
+                    'type': 'string',
+                    'required': False,
+                    'default': '',
+                },
+                'model': {
+                    'title': 'Embedding model',
+                    'description': 'The model used to generate the embeddings.',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'required': True,
+                    'supported-values': ['Snowflake/snowflake-arctic-embed-s', 'Snowflake/snowflake-arctic-embed-m'],
+                    'default': 'Snowflake/snowflake-arctic-embed-s',
+                },
             }
         }
 
