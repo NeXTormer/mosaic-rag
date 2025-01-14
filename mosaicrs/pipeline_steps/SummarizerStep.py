@@ -67,7 +67,7 @@ class SummarizerStep(PipelineStep):
                     'supported-values': ['summary'],
                     'default': 'summary',
                 },
-                'sytem_prompt': {
+                'system_prompt': {
                     'title': 'Summarizing instruction',
                     'description': 'This instruction is given to the LLM to summarize the text.',
                     'type': 'string',
