@@ -10,7 +10,7 @@ import logging
 
 class MosaicDataSource(PipelineStep):
 
-    def __init__(self, output_column: str = 'full_text', consider_query: bool = True, url: str = "http://localhost:8008", default_search_path: str = "/search?", default_full_text_path: str = "/full-text?"):
+    def __init__(self, output_column: str = 'full_text', consider_query: bool = True, url: str = "https://mosaic.ows.eu/service/api/", default_search_path: str = "/search?", default_full_text_path: str = "/full-text?"):
         self.mosaic_url = url
         self.search_path_part = default_search_path
         self.full_text_path_part = default_full_text_path
@@ -38,8 +38,6 @@ class MosaicDataSource(PipelineStep):
             if "q" in data.arguments:
                 data.arguments.pop("q")
 
-        data.arguments['index'] = 'simplewiki'
-        data.arguments['limit'] = 10
         response = requests.get(''.join([self.mosaic_url, self.search_path_part]), params=data.arguments)
 
         if response.status_code == 404:
@@ -89,7 +87,7 @@ class MosaicDataSource(PipelineStep):
                     'enforce-limit': False,
                     'required': True,
                     'supported-values': ['http://localhost:8008', 'https://mosaic.felixholz.com', 'https://mosaic.ows.eu/service/api/'],
-                    'default': 'http://localhost:8008',
+                    'default': 'https://mosaic.ows.eu/service/api/',
                 },
             }
         }

@@ -1,5 +1,7 @@
 import pandas as pd
 from transformers import T5ForConditionalGeneration, T5Tokenizer
+
+from mosaicrs.llm.DeepSeekLLMInterface import DeepSeekLLMInterface
 from mosaicrs.llm.T5Transformer import T5Transformer
 from tqdm import tqdm
 from mosaicrs.llm.LLMInterface import LLMInterface
@@ -16,21 +18,30 @@ from enum import Enum
 class SummarizerStep(PipelineStep):
 
     def __init__(self, input_column: str, output_column: str,
-                 model: str = 'google/flan-t5-base',
-                 system_prompt: str = "summarize: "):
+                 model: str = 'DeepSeekv3',
+                 summarize_prompt: str = "summarize: "):
 
-        self.llm = T5Transformer(model)
+        # todo: find better way of using deepseek model
+        if model == 'DeepSeekv3':
+            self.llm = DeepSeekLLMInterface(system_prompt='You are a helpful assistant')
+        else:
+            self.llm = T5Transformer(model)
+
         self.source_column_name = input_column
         self.target_column_name = output_column
-        self.system_prompt = system_prompt
+        self.summarize_prompt = summarize_prompt
 
     # style note: most important class (in this case 'transform' should be at the top, below constructor)
     def transform(self, data: PipelineIntermediate):
         full_texts = data.data[self.source_column_name].to_list()
         summarized_texts = []
 
+        print("Summarizing using model: {}".format(self.llm))
+
         for text in tqdm(full_texts):
-            summarized_texts.append(self.llm.generate(self.system_prompt + text))
+            summary = self.llm.generate(self.summarize_prompt + text)
+            summarized_texts.append(summary)
+            print("Summary: {}".format(summary))
 
         data.data[self.target_column_name] = summarized_texts
 
@@ -48,8 +59,8 @@ class SummarizerStep(PipelineStep):
                     'description': 'LLM model instance to use for summarization. Can be any T5 transformer model.',
                     'type': 'dropdown',
                     'enforce-limit': False,
-                    'supported-values': ['google/flan-t5-base'],
-                    'default': 'google/flan-t5-base',
+                    'supported-values': ['DeepSeekv3', 'google/flan-t5-base'],
+                    'default': 'DeepSeekv3',
                 },
                 'input_column': {
                     'title': 'Input column name',
@@ -67,7 +78,7 @@ class SummarizerStep(PipelineStep):
                     'supported-values': ['summary'],
                     'default': 'summary',
                 },
-                'system_prompt': {
+                'summarize_prompt': {
                     'title': 'Summarizing instruction',
                     'description': 'This instruction is given to the LLM to summarize the text.',
                     'type': 'string',

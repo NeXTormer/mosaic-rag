@@ -9,3 +9,4 @@ flask-cors~=5.0.0
 regex~=2024.11.6
 tqdm~=4.67.1
 sentence-transformers~=3.3.1
+openai~=1.59.8
