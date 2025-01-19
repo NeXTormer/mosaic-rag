@@ -20,7 +20,10 @@ class EmbeddingRerankerStep(PipelineStep):
             self.query = None
             self.use_new_query = False
 
-    def transform(self, data: PipelineIntermediate) -> PipelineIntermediate:
+    def transform(self, data: PipelineIntermediate, progress_info: dict = None) -> PipelineIntermediate:
+        progress_info['step_progress'] = '1/1'
+        progress_info['step_percentage'] = 0.5
+
         source_docs = data.data[self.source_column_name].to_list()
 
         doc_embeddings = self.sentence_transformer.encode(source_docs)

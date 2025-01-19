@@ -32,16 +32,26 @@ class SummarizerStep(PipelineStep):
         self.summarize_prompt = summarize_prompt
 
     # style note: most important class (in this case 'transform' should be at the top, below constructor)
-    def transform(self, data: PipelineIntermediate):
+    def transform(self, data: PipelineIntermediate, progress_info: dict = None):
         full_texts = data.data[self.source_column_name].to_list()
         summarized_texts = []
 
         print("Summarizing using model: {}".format(self.llm))
 
+        total_steps = len(full_texts)
+        current_step = 0
+
+        progress_info['step_progress'] = '{}/{}'.format(current_step, total_steps)
+        progress_info['step_percentage'] = current_step / total_steps
+
+
         for text in tqdm(full_texts):
             summary = self.llm.generate(self.summarize_prompt + text)
             summarized_texts.append(summary)
-            print("Summary: {}".format(summary))
+
+            current_step += 1
+            progress_info['step_progress'] = '{}/{}'.format(current_step, total_steps)
+            progress_info['step_percentage'] = current_step / total_steps
 
         data.data[self.target_column_name] = summarized_texts
 

@@ -2,15 +2,19 @@ from flask import Flask
 from flask import request
 from flask import Response
 
+import json
+
 from flask_cors import CORS
 
+from app.PipelineTask import get_pipeline_info, run_pipeline_old, PipelineTask
 from mosaicrs.pipeline_steps.MosaicDataSource import MosaicDataSource
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 
-from app.pipeline_backend import run, get_pipeline_info
-
 app = Flask(__name__)
 CORS(app)
+
+
+task_list: dict[str, PipelineTask] = {}
 
 
 @app.route("/")
@@ -33,10 +37,10 @@ def search():
 def pipeline_run():
     pipeline = request.get_json()
 
-    print("Running pipeline with parameters")
+    print("Running pipeline with parameters:")
     print(pipeline)
 
-    result = run(pipeline)
+    result = run_pipeline_old(pipeline)
     response = Response(
         result.data.to_json(orient='records'),
         mimetype='application/json')
@@ -51,11 +55,54 @@ def pipeline_info():
     return response
 
 
-@app.get('/pipeline/progress/{task_id}')
-def pipeline_progress():
-    pass
+@app.post('/task/enqueue')
+def pipeline_enqueue():
+    pipeline = request.get_json()
+
+    print("Enqueueing pipeline with parameters:")
+    print(pipeline)
+
+    task = PipelineTask(pipeline)
+    task_id = task.uuid
+    task_list[task_id] = task
 
 
-@app.get('/pipeline/result/{task_id}')
-def pipeline_result():
-    pass
+    task.start()
+    response = Response(
+        task_id,
+        mimetype='text/plain')
+
+    return response
+
+
+@app.get('/task/progress/<string:task_id>')
+def task_progress(task_id: str):
+    if task_id not in task_list:
+        response = Response('Task id not found', 404)
+        return response
+
+    task = task_list[task_id]
+
+    response = Response(
+        json.dumps(task.get_status()),
+        mimetype='application/json')
+
+
+    return response
+
+@app.get('/task/cancel/<string:task_id>')
+def task_cancel(task_id: str):
+    if task_id not in task_list:
+        response = Response('Task id not found', 404)
+        return response
+
+
+    task = task_list[task_id]
+    task.cancel()
+
+    del task_list[task_id]
+
+    response = Response(
+        'Success',
+        mimetype='text/plain')
+    return response
