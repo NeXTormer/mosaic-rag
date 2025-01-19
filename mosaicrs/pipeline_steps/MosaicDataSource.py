@@ -38,6 +38,8 @@ class MosaicDataSource(PipelineStep):
             if "q" in data.arguments:
                 data.arguments.pop("q")
 
+        data.arguments['index'] = 'simplewiki'
+
         response = requests.get(''.join([self.mosaic_url, self.search_path_part]), params=data.arguments)
 
         if response.status_code == 404:

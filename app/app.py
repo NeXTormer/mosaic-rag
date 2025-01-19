@@ -15,7 +15,7 @@ CORS(app)
 
 @app.route("/")
 def hello_world():
-    return "<p>Hello, World!</p>"
+    return "<h3>MosaicRS</h3>"
 
 
 @app.get('/search')

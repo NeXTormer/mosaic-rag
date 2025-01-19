@@ -5,6 +5,7 @@ transformers~=4.47.0
 torch
 flask~=3.1.0
 flask-cors~=5.0.0
+gunicorn==21.1.0
 
 regex~=2024.11.6
 tqdm~=4.67.1
