@@ -7,7 +7,9 @@ import pandas as pd
 class PipelineIntermediate:
 
     def __init__(self, query: str = None, arguments: Dict[str, Any] = {}):
-        self.query = query
-        self.arguments = arguments
+        self.query: str = query
+        self.arguments: Dict[str, Any] = arguments
         self.history = {}
-        self.data = pd.DataFrame()
+        self.documents: pd.DataFrame = pd.DataFrame()
+
+        self.metadata: pd.DataFrame = pd.DataFrame(columns=["title", "data"])

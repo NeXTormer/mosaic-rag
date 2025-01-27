@@ -82,9 +82,9 @@ class MosaicDataSource(PipelineStep):
             progress_info['step_progress'] = '{}/{}'.format(current_step, total_steps)
             progress_info['step_percentage'] = current_step / total_steps
 
-        data.data = df_docs
+        data.documents = df_docs
         
-        data.history[str(len(data.history)+1)] = data.data.copy(deep=True)
+        data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
 
 
         return data

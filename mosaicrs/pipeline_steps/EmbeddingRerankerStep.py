@@ -24,17 +24,17 @@ class EmbeddingRerankerStep(PipelineStep):
         progress_info['step_progress'] = '1/1'
         progress_info['step_percentage'] = 0.5
 
-        source_docs = data.data[self.source_column_name].to_list()
+        source_docs = data.documents[self.source_column_name].to_list()
 
         doc_embeddings = self.sentence_transformer.encode(source_docs)
         query_embeddings = self.sentence_transformer.encode(self.query if self.use_new_query else data.query, prompt_name="query")
 
         scores = query_embeddings @ doc_embeddings.T
         reranking_score_name = "_reranking_score_" + str(len(data.history) + 1) + "_"
-        data.data[reranking_score_name] = scores
-        data.data.sort_values(by=reranking_score_name, ascending=False, inplace=True)
+        data.documents[reranking_score_name] = scores
+        data.documents.sort_values(by=reranking_score_name, ascending=False, inplace=True)
 
-        data.history[str(len(data.history)+1)] = data.data.copy(deep=True)
+        data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
 
         return data
 

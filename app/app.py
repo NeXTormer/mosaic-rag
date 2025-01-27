@@ -28,7 +28,7 @@ def search():
 
     ds = MosaicDataSource()
     response = Response(
-        ds.transform(PipelineIntermediate(query=query, arguments={'limit': 20})).data.to_json(orient='records'),
+        ds.transform(PipelineIntermediate(query=query, arguments={'limit': 20})).documents.to_json(orient='records'),
         mimetype='application/json')
     return response
 
@@ -42,7 +42,7 @@ def pipeline_run():
 
     result = run_pipeline_old(pipeline)
     response = Response(
-        result.data.to_json(orient='records'),
+        result.documents.to_json(orient='records'),
         mimetype='application/json')
     return response
 
@@ -83,6 +83,7 @@ def task_progress(task_id: str):
 
     task = task_list[task_id]
 
+    print(task.get_status())
     response = Response(
         json.dumps(task.get_status()),
         mimetype='application/json')

@@ -20,7 +20,7 @@ class DeepSeekLLMInterface(LLMInterface):
             model='deepseek-chat',
             messages=[
                 {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": prompt},
+                {"role": "user", "content": "Summarize: " + prompt},
             ],
             stream=False
         )

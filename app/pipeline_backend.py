@@ -4,5 +4,5 @@ from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline_steps.EmbeddingRerankerStep import EmbeddingRerankerStep
 from mosaicrs.pipeline_steps.MosaicDataSource import MosaicDataSource
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
-from mosaicrs.pipeline_steps.SummarizerStep import SummarizerStep
+from mosaicrs.pipeline_steps.DocumentSummarizerStep import DocumentSummarizerStep
 

@@ -15,7 +15,7 @@ from enum import Enum
 #     T5_Base = "google-t5/t5-base"
 
 
-class SummarizerStep(PipelineStep):
+class ResultsSummarizerStep(PipelineStep):
 
     def __init__(self, input_column: str, output_column: str,
                  model: str = 'DeepSeekv3',
@@ -23,7 +23,7 @@ class SummarizerStep(PipelineStep):
 
         # todo: find better way of using deepseek model
         if model == 'DeepSeekv3':
-            self.llm = DeepSeekLLMInterface(system_prompt='You are a helpful assistant')
+            self.llm = DeepSeekLLMInterface(system_prompt='You are a helpful assistant part of a search engine. You are given a query and documents separated by <SEP>. Please summarize the documents in order to answer the query. Do not use any additional information not available in the given documents.')
         else:
             self.llm = T5Transformer(model)
 
@@ -33,43 +33,42 @@ class SummarizerStep(PipelineStep):
 
     # style note: most important class (in this case 'transform' should be at the top, below constructor)
     def transform(self, data: PipelineIntermediate, progress_info: dict = None):
-        full_texts = data.data[self.source_column_name].to_list()
+        full_texts = data.documents[self.source_column_name].to_list()
         summarized_texts = []
 
         print("Summarizing using model: {}".format(self.llm))
 
-        total_steps = len(full_texts)
-        current_step = 0
+        progress_info['step_progress'] = '{}/{}'.format(0, 0)
+        progress_info['step_percentage'] = 0
 
-        progress_info['step_progress'] = '{}/{}'.format(current_step, total_steps)
-        progress_info['step_percentage'] = current_step / total_steps
+        summary = self.llm.generate("Query: " + data.query + "<SEP>" + "<SEP>".join(full_texts))
 
 
-        for text in tqdm(full_texts):
-            summary = self.llm.generate(self.summarize_prompt + text)
-            summarized_texts.append(summary)
+        progress_info['step_progress'] = '{1}/{1}'
+        progress_info['step_percentage'] = 1
 
-            current_step += 1
-            progress_info['step_progress'] = '{}/{}'.format(current_step, total_steps)
-            progress_info['step_percentage'] = current_step / total_steps
 
-        data.data[self.target_column_name] = summarized_texts
+        data.metadata = pd.concat([data.metadata, pd.DataFrame({
+            'data': [summary],
+            'title': [self.target_column_name],
+        })], ignore_index=True)
 
-        data.history[str(len(data.history) + 1)] = data.data.copy(deep=True)
+        data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
+
 
         return data
 
     @staticmethod
     def get_info() -> dict:
         return {
-            "name": SummarizerStep.get_name(),
+            "name": ResultsSummarizerStep.get_name(),
             "parameters": {
                 'model': {
                     'title': 'Summarizer model',
                     'description': 'LLM model instance to use for summarization. Can be any T5 transformer model.',
                     'type': 'dropdown',
                     'enforce-limit': False,
-                    'supported-values': ['DeepSeekv3', 'google/flan-t5-base'],
+                    'supported-values': ['DeepSeekv3'],
                     'default': 'DeepSeekv3',
                 },
                 'input_column': {
@@ -81,19 +80,12 @@ class SummarizerStep(PipelineStep):
                     'default': 'full-text',
                 },
                 'output_column': {
-                    'title': 'Output column name',
+                    'title': 'Output metadata column name',
                     'description': 'The summarized text gets saved to this column..',
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'supported-values': ['summary'],
                     'default': 'summary',
-                },
-                'summarize_prompt': {
-                    'title': 'Summarizing instruction',
-                    'description': 'This instruction is given to the LLM to summarize the text.',
-                    'type': 'string',
-                    'enforce-limit': False,
-                    'default': 'Summarize: ',
                 },
 
             }
@@ -101,4 +93,4 @@ class SummarizerStep(PipelineStep):
 
     @staticmethod
     def get_name() -> str:
-        return "LLM Summarizer"
+        return "Query Summarizer"

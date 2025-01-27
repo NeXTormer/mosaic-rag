@@ -15,7 +15,7 @@ class Pipeline(object):
             base_message_string = "Step: " + str(i + 1)
             try:
                 print_message(base_message_string + step.get_name())
-                data = step.transform(data)
+                data = step.transform(data, progress_info={})
             except ValueError as error:
                 print_error(str(error))
                 success = False

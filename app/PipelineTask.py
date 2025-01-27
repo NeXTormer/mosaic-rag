@@ -8,12 +8,14 @@ from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline_steps.EmbeddingRerankerStep import EmbeddingRerankerStep
 from mosaicrs.pipeline_steps.MosaicDataSource import MosaicDataSource
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
-from mosaicrs.pipeline_steps.SummarizerStep import SummarizerStep
+from mosaicrs.pipeline_steps.DocumentSummarizerStep import DocumentSummarizerStep
+from mosaicrs.pipeline_steps.ResultsSummarizerStep import ResultsSummarizerStep
 
 pipeline_steps_mapping = {
     "mosaic_datasource": MosaicDataSource,
-    "llm_summarizer": SummarizerStep,
-    "embedding_reranker": EmbeddingRerankerStep
+    "llm_summarizer": DocumentSummarizerStep,
+    "embedding_reranker": EmbeddingRerankerStep,
+    "all_results_summarizer": ResultsSummarizerStep
 }
 
 class PipelineTask:
@@ -54,10 +56,14 @@ class PipelineTask:
             'pipeline_progress': self.thread_args['pipeline_progress'],
             'pipeline_percentage': self.thread_args['pipeline_percentage'],
             'result': None,
+            'metadata': None,
         }
 
         if self.thread_args['result'] is not None:
-            data['result'] = self.thread_args['result'].data.to_json(orient='records')
+            data['result'] = self.thread_args['result'].documents.to_json(orient='records')
+
+            data['metadata'] = self.thread_args['result'].metadata.to_json(orient='records')
+
 
         return data
 
