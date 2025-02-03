@@ -59,10 +59,13 @@ class DocumentSummarizerStep(PipelineStep):
 
         return data
 
+
     @staticmethod
     def get_info() -> dict:
         return {
             "name": DocumentSummarizerStep.get_name(),
+            "category": "Summarizers",
+            "description": "Summarize each document in the result set using a LLM. Specify the input and output column names.",
             "parameters": {
                 'model': {
                     'title': 'Summarizer model',

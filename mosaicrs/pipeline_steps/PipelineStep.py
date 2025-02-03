@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
+from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 
 
 class PipelineStep(ABC):
 
     @abstractmethod
-    def transform(self, data: PipelineIntermediate, progress_info: dict[str, any] = None) -> PipelineIntermediate:
+    def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler) -> PipelineIntermediate:
         pass
 
     @staticmethod

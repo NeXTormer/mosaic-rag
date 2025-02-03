@@ -62,6 +62,8 @@ class ResultsSummarizerStep(PipelineStep):
     def get_info() -> dict:
         return {
             "name": ResultsSummarizerStep.get_name(),
+            "category": "Summarizers",
+            "description": "Summarize all documents in the result set into one search result.",
             "parameters": {
                 'model': {
                     'title': 'Summarizer model',

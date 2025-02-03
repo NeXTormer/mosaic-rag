@@ -42,6 +42,8 @@ class EmbeddingRerankerStep(PipelineStep):
     def get_info() -> dict:
         return {
             "name": EmbeddingRerankerStep.get_name(),
+            "category": "Rerankers",
+            "description": "Perform reranking based on generated embeddings.",
             "parameters": {
                 'input_column': {
                     'title': 'Input column name',

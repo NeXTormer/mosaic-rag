@@ -93,6 +93,8 @@ class MosaicDataSource(PipelineStep):
     def get_info() -> dict:
         return {
             "name": MosaicDataSource.get_name(),
+            "category": "Data Sources",
+            "description": "Retrieve initial result set from a MOSAIC instance.",
             "parameters": {
                 'output_column': {
                     'title': 'Output column name',
