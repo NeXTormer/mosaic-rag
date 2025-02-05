@@ -10,6 +10,7 @@ class PipelineIntermediate:
         self.query: str = query
         self.arguments: Dict[str, Any] = arguments
         self.history = {}
-        self.documents: pd.DataFrame = pd.DataFrame()
 
+
+        self.documents: pd.DataFrame = pd.DataFrame()
         self.metadata: pd.DataFrame = pd.DataFrame(columns=["title", "data"])

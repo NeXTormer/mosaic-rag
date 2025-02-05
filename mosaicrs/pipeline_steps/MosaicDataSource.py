@@ -5,6 +5,7 @@ import json
 import pandas as pd
 import regex as re
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
+from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 import logging
 
@@ -21,7 +22,7 @@ class MosaicDataSource(PipelineStep):
         self.limit = limit
 
 
-    def transform(self, data: PipelineIntermediate, progress_info: dict = None) -> PipelineIntermediate:
+    def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
         if self.consider_query:
             # Check query for multiple words and if so convert to correct format
             if re.search("^[a-zA-Z]+(\+[a-zA-Z]+)*$", data.query) is None:
@@ -68,19 +69,16 @@ class MosaicDataSource(PipelineStep):
         # df_docs[self.target_column_name] = df_docs.apply(lambda row: self._request_full_text(row['id']), axis=1)
         df_docs[self.target_column_name] = None
 
-        total_steps = len(df_docs)
-        current_step = 0
-
-        progress_info['step_progress'] = '{}/{}'.format(current_step, total_steps)
-        progress_info['step_percentage'] = current_step / total_steps
+        handler.update_progress(0, len(df_docs))
 
         # for tracking progress
         for index, row in df_docs.iterrows():
+            if handler.should_cancel:
+                break
+
             df_docs.at[index, self.target_column_name] = self._request_full_text(row['id'])
 
-            current_step += 1
-            progress_info['step_progress'] = '{}/{}'.format(current_step, total_steps)
-            progress_info['step_percentage'] = current_step / total_steps
+            handler.increment_progress()
 
         data.documents = df_docs
         

@@ -1,15 +1,33 @@
 class PipelineStepHandler:
 
     def __init__(self):
-        pass
+        self.should_cancel = False
+        self.progress = (0, 0)
 
 
-    def start_new_step(self, total_iterations: int = 1):
-        pass
+    def update_progress(self, current_iteration, total_iterations):
+        self.progress = (current_iteration, total_iterations)
 
-    def update_step(self, increment: int = 1):
-        pass
+    def increment_progress(self):
+        self.progress = (self.progress[0] + 1, self.progress[1])
 
 
-    def is_cached(self):
-        pass
+    def get_progress(self):
+        current = self.progress[0]
+        total = self.progress[1]
+        if current > total:
+            current = total
+
+        if total == 0:
+            total = 1
+
+        return {
+            'step_percentage': current / total,
+            'step_progress': '{}/{}'.format(current, total)
+        }
+
+    def reset(self):
+        self.should_cancel = False
+        self.progress = (0, 0)
+
+    # TODO: should also handle caching in some form

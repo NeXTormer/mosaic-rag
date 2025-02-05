@@ -6,6 +6,7 @@ from mosaicrs.llm.T5Transformer import T5Transformer
 from tqdm import tqdm
 from mosaicrs.llm.LLMInterface import LLMInterface
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
+from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from enum import Enum
 
@@ -21,7 +22,8 @@ class DocumentSummarizerStep(PipelineStep):
                  model: str = 'DeepSeekv3',
                  summarize_prompt: str = "summarize: "):
 
-        # todo: find better way of using deepseek model
+        # todo: find better way of using deepseek model, but leave it like that now
+        # just use deepseekv3 for all general purpose llm tasks
         if model == 'DeepSeekv3':
             self.llm = DeepSeekLLMInterface(system_prompt='You are a helpful assistant')
         else:
@@ -32,26 +34,22 @@ class DocumentSummarizerStep(PipelineStep):
         self.summarize_prompt = summarize_prompt
 
     # style note: most important class (in this case 'transform' should be at the top, below constructor)
-    def transform(self, data: PipelineIntermediate, progress_info: dict = None):
+    def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()):
         full_texts = data.documents[self.source_column_name].to_list()
         summarized_texts = []
 
         print("Summarizing using model: {}".format(self.llm))
 
-        total_steps = len(full_texts)
-        current_step = 0
 
-        progress_info['step_progress'] = '{}/{}'.format(current_step, total_steps)
-        progress_info['step_percentage'] = current_step / total_steps
-
+        handler.update_progress(0, len(full_texts))
 
         for text in tqdm(full_texts):
+            if handler.should_cancel:
+                break
+
             summary = self.llm.generate(self.summarize_prompt + text)
             summarized_texts.append(summary)
-
-            current_step += 1
-            progress_info['step_progress'] = '{}/{}'.format(current_step, total_steps)
-            progress_info['step_percentage'] = current_step / total_steps
+            handler.increment_progress()
 
         data.documents[self.target_column_name] = summarized_texts
 

@@ -6,7 +6,7 @@ import json
 
 from flask_cors import CORS
 
-from app.PipelineTask import get_pipeline_info, run_pipeline_old, PipelineTask
+from app.PipelineTask import get_pipeline_info, PipelineTask
 from mosaicrs.pipeline_steps.MosaicDataSource import MosaicDataSource
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 
@@ -35,16 +35,18 @@ def search():
 
 @app.post('/pipeline/run')
 def pipeline_run():
-    pipeline = request.get_json()
+    return 'Deprecated', 405
 
-    print("Running pipeline with parameters:")
-    print(pipeline)
+    # pipeline = request.get_json()
+    #
+    # print("Running pipeline with parameters:")
+    # print(pipeline)
 
-    result = run_pipeline_old(pipeline)
-    response = Response(
-        result.documents.to_json(orient='records'),
-        mimetype='application/json')
-    return response
+    # result = run_pipeline_old(pipeline)
+    # response = Response(
+    #     result.documents.to_json(orient='records'),
+    #     mimetype='application/json')
+    # return response
 
 
 @app.get('/pipeline/info')

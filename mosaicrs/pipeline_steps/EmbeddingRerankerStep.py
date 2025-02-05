@@ -1,4 +1,4 @@
-
+from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from sentence_transformers import SentenceTransformer
 from enum import Enum
@@ -20,9 +20,8 @@ class EmbeddingRerankerStep(PipelineStep):
             self.query = None
             self.use_new_query = False
 
-    def transform(self, data: PipelineIntermediate, progress_info: dict = None) -> PipelineIntermediate:
-        progress_info['step_progress'] = '1/1'
-        progress_info['step_percentage'] = 0.5
+    def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
+        handler.update_progress(1, 1)
 
         source_docs = data.documents[self.source_column_name].to_list()
 

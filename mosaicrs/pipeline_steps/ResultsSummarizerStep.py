@@ -6,14 +6,9 @@ from mosaicrs.llm.T5Transformer import T5Transformer
 from tqdm import tqdm
 from mosaicrs.llm.LLMInterface import LLMInterface
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
+from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from enum import Enum
-
-# Don't think thats the best idea to limit models like this
-# class SupportedSummarizerModels(Enum):
-#     Flan_T5_Base = "google/flan-t5-base",
-#     T5_Base = "google-t5/t5-base"
-
 
 class ResultsSummarizerStep(PipelineStep):
 
@@ -23,7 +18,7 @@ class ResultsSummarizerStep(PipelineStep):
 
         # todo: find better way of using deepseek model
         if model == 'DeepSeekv3':
-            self.llm = DeepSeekLLMInterface(system_prompt='You are a helpful assistant part of a search engine. You are given a query and documents separated by <SEP>. Please summarize the documents in order to answer the query. Do not use any additional information not available in the given documents.')
+            self.llm = DeepSeekLLMInterface(system_prompt='You are a helpful assistant part of a search engine. You are given a query and documents separated by <SEP>. Please summarize the documents in order to answer the query. Do not use any additional information not available in the given documents. The summary should be a maximum of five sentences without any listings. Mark important passages as bold.')
         else:
             self.llm = T5Transformer(model)
 
@@ -32,20 +27,15 @@ class ResultsSummarizerStep(PipelineStep):
         self.summarize_prompt = summarize_prompt
 
     # style note: most important class (in this case 'transform' should be at the top, below constructor)
-    def transform(self, data: PipelineIntermediate, progress_info: dict = None):
+    def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()):
         full_texts = data.documents[self.source_column_name].to_list()
         summarized_texts = []
 
         print("Summarizing using model: {}".format(self.llm))
 
-        progress_info['step_progress'] = '{}/{}'.format(0, 0)
-        progress_info['step_percentage'] = 0
-
+        handler.update_progress(0, 1)
         summary = self.llm.generate("Query: " + data.query + "<SEP>" + "<SEP>".join(full_texts))
-
-
-        progress_info['step_progress'] = '{1}/{1}'
-        progress_info['step_percentage'] = 1
+        handler.increment_progress()
 
 
         data.metadata = pd.concat([data.metadata, pd.DataFrame({
