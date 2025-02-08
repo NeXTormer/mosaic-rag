@@ -9,6 +9,10 @@ from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 import logging
 
+import asyncio
+import aiohttp
+import ssl
+
 
 class MosaicDataSource(PipelineStep):
 
@@ -20,6 +24,8 @@ class MosaicDataSource(PipelineStep):
         self.target_column_name = output_column
         self.index = search_index
         self.limit = limit
+
+        self.request_limiter_semaphore = asyncio.Semaphore(24)
 
 
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
@@ -71,14 +77,16 @@ class MosaicDataSource(PipelineStep):
 
         handler.update_progress(0, len(df_docs))
 
-        # for tracking progress
-        for index, row in df_docs.iterrows():
-            if handler.should_cancel:
-                break
+        # # for tracking progress
+        # for index, row in df_docs.iterrows():
+        #     if handler.should_cancel:
+        #         break
+        #
+        #     df_docs.at[index, self.target_column_name] = self._request_full_text(row['id'])
+        #
+        #     handler.increment_progress()
 
-            df_docs.at[index, self.target_column_name] = self._request_full_text(row['id'])
-
-            handler.increment_progress()
+        df_docs = asyncio.run(self._fetch_all_texts(handler, df_docs))
 
         data.documents = df_docs
         
@@ -110,7 +118,8 @@ class MosaicDataSource(PipelineStep):
                     'enforce-limit': False,
                     'required': True,
                     'supported-values': ['http://localhost:8008', 'https://mosaic.felixholz.com', 'https://mosaic.ows.eu/service/api/'],
-                    'default': 'https://mosaic.ows.eu/service/api/',
+                    # 'default': 'https://mosaic.ows.eu/service/api/',
+                    'default': 'https://mosaic.felixholz.com',
                 },
                 'limit': {
                     'title': 'Limit',
@@ -118,7 +127,7 @@ class MosaicDataSource(PipelineStep):
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'required': True,
-                    'supported-values': ['5', '10', '20', '50', '100'],
+                    'supported-values': ['5', '10', '20', '50', '100', '500'],
                     'default': '10',
                 },
                 'search_index': {
@@ -127,8 +136,8 @@ class MosaicDataSource(PipelineStep):
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'required': True,
-                    'supported-values': ['simplewiki', 'unis-graz'],
-                    'default': 'simplewiki',
+                    'supported-values': ['tech-knowledge', 'harry-potter', 'owi-snapshot-20240205-eng', 'simplewiki', 'unis-austria', 'medical-information', 'recipes'],
+                    'default': 'tech-knowledge',
                 },
             }
         }
@@ -137,14 +146,41 @@ class MosaicDataSource(PipelineStep):
     def get_name() -> str:
         return "MosaicDataSource"
 
-    def _request_full_text(self, doc_id: str) -> str:
+    def _request_full_text(self, doc_id: str, handler: PipelineStepHandler) -> str:
         response = requests.get(''.join([self.mosaic_url, self.full_text_path_part]), params={'id': doc_id})
+        handler.increment_progress()
         if response.status_code == 200:
             json_data = json.loads(response.text)
             return json_data['fullText']
         else:
             return ""
 
+    async def _request_full_text_async(self, session, doc_id: str, handler: PipelineStepHandler) -> str:
+        url = ''.join([self.mosaic_url, self.full_text_path_part])
+
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE  # Disables SSL verification
+
+        async with self.request_limiter_semaphore:
+            async with session.get(url, ssl=ssl_context, params={'id': doc_id}) as response:
+                result = await response.text()
+                handler.increment_progress()
+
+                json_data = json.loads(result)
+                if 'fullText' in json_data:
+                    return json_data['fullText']
+                return result
+
+
+    async def _fetch_all_texts(self, handler: PipelineStepHandler, df_docs):
+        async with aiohttp.ClientSession() as session:
+            tasks = [self._request_full_text_async(session, row['id'], handler) for _, row in df_docs.iterrows()]
+            results = await asyncio.gather(*tasks)
+
+
+        df_docs[self.target_column_name] = results
+        return df_docs
     
 
        

@@ -8,6 +8,11 @@ class PipelineIntermediate:
 
     def __init__(self, query: str = None, arguments: Dict[str, Any] = {}):
         self.query: str = query
+
+        # TODO:
+        # self.user_query: str = query
+        # self.expanded_queries: List[str] = []
+
         self.arguments: Dict[str, Any] = arguments
         self.history = {}
 

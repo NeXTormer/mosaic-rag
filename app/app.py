@@ -85,7 +85,6 @@ def task_progress(task_id: str):
 
     task = task_list[task_id]
 
-    print(task.get_status())
     response = Response(
         json.dumps(task.get_status()),
         mimetype='application/json')

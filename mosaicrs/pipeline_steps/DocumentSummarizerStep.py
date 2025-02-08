@@ -10,12 +10,6 @@ from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from enum import Enum
 
-# Don't think thats the best idea to limit models like this
-# class SupportedSummarizerModels(Enum):
-#     Flan_T5_Base = "google/flan-t5-base",
-#     T5_Base = "google-t5/t5-base"
-
-
 class DocumentSummarizerStep(PipelineStep):
 
     def __init__(self, input_column: str, output_column: str,
@@ -33,7 +27,7 @@ class DocumentSummarizerStep(PipelineStep):
         self.target_column_name = output_column
         self.summarize_prompt = summarize_prompt
 
-    # style note: most important class (in this case 'transform' should be at the top, below constructor)
+
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()):
         full_texts = data.documents[self.source_column_name].to_list()
         summarized_texts = []

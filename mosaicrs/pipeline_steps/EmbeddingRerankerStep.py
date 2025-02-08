@@ -1,11 +1,7 @@
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from sentence_transformers import SentenceTransformer
-from enum import Enum
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
-
-# class SupportedSentenceTransformers(Enum):
-#     Snowflake = "Snowflake/snowflake-arctic-embed-s"
 
 
 class EmbeddingRerankerStep(PipelineStep):
