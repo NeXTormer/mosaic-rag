@@ -6,17 +6,21 @@ from typing import Any
 
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
+from mosaicrs.pipeline_steps.ContentExtractorStep import ContentExtractorStep
 from mosaicrs.pipeline_steps.EmbeddingRerankerStep import EmbeddingRerankerStep
 from mosaicrs.pipeline_steps.MosaicDataSource import MosaicDataSource
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from mosaicrs.pipeline_steps.DocumentSummarizerStep import DocumentSummarizerStep
 from mosaicrs.pipeline_steps.ResultsSummarizerStep import ResultsSummarizerStep
+from mosaicrs.pipeline_steps.WordCounterStep import WordCounterStep
 
 pipeline_steps_mapping = {
     "mosaic_datasource": MosaicDataSource,
     "llm_summarizer": DocumentSummarizerStep,
+    "all_results_summarizer": ResultsSummarizerStep,
+    "content_extractor": ContentExtractorStep,
     "embedding_reranker": EmbeddingRerankerStep,
-    "all_results_summarizer": ResultsSummarizerStep
+    "word_counter": WordCounterStep,
 }
 
 class PipelineTask:
@@ -106,13 +110,15 @@ def _run_pipeline(pipeline, args):
         args['pipeline_progress'] = str(current_step_index) + '/' + str(total_steps)
         args['pipeline_percentage'] = current_step_index / total_steps
 
-        args['pipeline_step_handler'].reset()
+        args['pipeline_step_handler'].reset(step_id)
         data = step.transform(data, handler=args['pipeline_step_handler'])
         current_step_index += 1
 
     args['pipeline_progress'] = str(current_step_index) + '/' + str(total_steps)
     args['step_percentage'] = 1
     args['pipeline_percentage'] = 1
+
+    args['pipeline_step_handler'].log_stats()
 
     args['result'] = data
 

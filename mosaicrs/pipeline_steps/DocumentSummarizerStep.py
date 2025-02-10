@@ -9,6 +9,7 @@ from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from enum import Enum
+import hashlib
 
 class DocumentSummarizerStep(PipelineStep):
 
@@ -18,6 +19,7 @@ class DocumentSummarizerStep(PipelineStep):
 
         # todo: find better way of using deepseek model, but leave it like that now
         # just use deepseekv3 for all general purpose llm tasks
+        self.model_name = model
         if model == 'DeepSeekv3':
             self.llm = DeepSeekLLMInterface(system_prompt='You are a helpful assistant')
         else:
@@ -41,7 +43,13 @@ class DocumentSummarizerStep(PipelineStep):
             if handler.should_cancel:
                 break
 
-            summary = self.llm.generate(self.summarize_prompt + text)
+            text_hash = hashlib.sha1((text + self.model_name + self.summarize_prompt).encode()).hexdigest()
+            summary = handler.get_cache(text_hash)
+
+            if summary is None:
+                summary = self.llm.generate(self.summarize_prompt + text)
+                handler.put_cache(text_hash, summary)
+
             summarized_texts.append(summary)
             handler.increment_progress()
 

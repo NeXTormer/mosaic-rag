@@ -1,5 +1,3 @@
-from operator import index
-from typing import Any
 import requests
 import json
 import pandas as pd
@@ -25,7 +23,7 @@ class MosaicDataSource(PipelineStep):
         self.index = search_index
         self.limit = limit
 
-        self.request_limiter_semaphore = asyncio.Semaphore(24)
+        self.request_limiter_semaphore = asyncio.Semaphore(50)
 
 
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
@@ -137,7 +135,7 @@ class MosaicDataSource(PipelineStep):
                     'enforce-limit': False,
                     'required': True,
                     'supported-values': ['tech-knowledge', 'harry-potter', 'owi-snapshot-20240205-eng', 'simplewiki', 'unis-austria', 'medical-information', 'recipes'],
-                    'default': 'tech-knowledge',
+                    'default': 'owi-snapshot-20240205-eng',
                 },
             }
         }
@@ -157,6 +155,13 @@ class MosaicDataSource(PipelineStep):
 
     async def _request_full_text_async(self, session, doc_id: str, handler: PipelineStepHandler) -> str:
         url = ''.join([self.mosaic_url, self.full_text_path_part])
+        cache_key = 'full-text-for-id-{}'.format(doc_id)
+
+        result = handler.get_cache(cache_key)
+        if result is not None:
+            handler.increment_progress()
+            return result
+
 
         ssl_context = ssl.create_default_context()
         ssl_context.check_hostname = False
@@ -169,7 +174,9 @@ class MosaicDataSource(PipelineStep):
 
                 json_data = json.loads(result)
                 if 'fullText' in json_data:
+                    handler.put_cache(cache_key, json_data['fullText'])
                     return json_data['fullText']
+
                 return result
 
 

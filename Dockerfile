@@ -28,5 +28,8 @@ EXPOSE 5000
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
+# the docker host for the deployment server running redis
+ENV REDIS_HOST=172.17.0.1
+
 # Run the app with Gunicorn
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "300", "app.app:app"]
