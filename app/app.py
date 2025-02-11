@@ -102,7 +102,8 @@ def task_cancel(task_id: str):
     task = task_list[task_id]
     task.cancel()
 
-    del task_list[task_id]
+    #TODO: add cancelled flag to task
+    # del task_list[task_id]
 
     response = Response(
         'Success',

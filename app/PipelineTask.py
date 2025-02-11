@@ -56,9 +56,10 @@ class PipelineTask:
             'pipeline_progress': self.thread_args['pipeline_progress'],
             'pipeline_percentage': self.thread_args['pipeline_percentage'],
             'result': None,
+            'has_finished': self.thread_args['has_finished'],
             'metadata': None,
         }
-        data.update(self.thread_args['pipeline_step_handler'].get_progress())
+        data.update(self.thread_args['pipeline_step_handler'].get_status())
 
         if self.thread_args['result'] is not None:
             data['result'] = self.thread_args['result'].documents.to_json(orient='records')
@@ -90,6 +91,8 @@ def _run_pipeline(pipeline, args):
     args['pipeline_progress'] = str(current_step_index) + '/' + str(total_steps)
     args['pipeline_percentage'] = 0
     args['result'] = None
+    args['has_finished'] = False
+
 
     print("Running pipeline. Query: " + query)
 
@@ -121,6 +124,7 @@ def _run_pipeline(pipeline, args):
     args['pipeline_step_handler'].log_stats()
 
     args['result'] = data
+    args['has_finished'] = True
 
 
 def _get_class_from_id_and_parameters(step_id: str, step_parameters: dict) -> PipelineStep:
