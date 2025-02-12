@@ -135,7 +135,7 @@ class MosaicDataSource(PipelineStep):
                     'enforce-limit': False,
                     'required': True,
                     'supported-values': ['tech-knowledge', 'harry-potter', 'owi-snapshot-20240205-eng', 'simplewiki', 'unis-austria', 'medical-information', 'recipes'],
-                    'default': 'owi-snapshot-20240205-eng',
+                    'default': 'simplewiki',
                 },
             }
         }

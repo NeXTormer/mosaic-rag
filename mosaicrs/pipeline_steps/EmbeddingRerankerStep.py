@@ -3,7 +3,6 @@ from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from sentence_transformers import SentenceTransformer
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 
-
 class EmbeddingRerankerStep(PipelineStep):
 
     def __init__(self, input_column: str, query: str = None, model: str = "Snowflake/snowflake-arctic-embed-s"):
@@ -19,11 +18,9 @@ class EmbeddingRerankerStep(PipelineStep):
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
         handler.update_progress(1, 1)
 
-        source_docs = data.documents[self.source_column_name].to_list()
+        doc_embeddings, query_embeddings = self.create_embeddings(data)
 
-        doc_embeddings = self.sentence_transformer.encode(source_docs)
-        query_embeddings = self.sentence_transformer.encode(self.query if self.use_new_query else data.query, prompt_name="query")
-
+        #cosine similarity
         scores = query_embeddings @ doc_embeddings.T
         reranking_score_name = "_reranking_score_" + str(len(data.history) + 1) + "_"
         data.documents[reranking_score_name] = scores
@@ -33,12 +30,24 @@ class EmbeddingRerankerStep(PipelineStep):
 
         return data
 
+
+    def create_embeddings(self, data: PipelineIntermediate):
+        source_docs = [entry if entry is not None else "" for entry in data.documents[self.source_column_name].to_list()]
+
+        #Is already normalized
+        doc_embeddings = self.sentence_transformer.encode(source_docs)
+
+        query_embeddings = self.sentence_transformer.encode(self.query if self.use_new_query else data.query, prompt_name="query")
+
+        return doc_embeddings, query_embeddings
+
+
     @staticmethod
     def get_info() -> dict:
         return {
             "name": EmbeddingRerankerStep.get_name(),
             "category": "Rerankers",
-            "description": "Perform reranking based on generated embeddings.",
+            "description": "Perform reranking based on generated dense embeddings using CosineSimilarity.",
             "parameters": {
                 'input_column': {
                     'title': 'Input column name',

@@ -17,7 +17,7 @@ class RowProcessorPipelineStep(PipelineStep):
 
 
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler) -> PipelineIntermediate:
-        inputs = data.documents[self.input_column].to_list()
+        inputs = [entry if entry is not None else "" for entry in data.documents[self.input_column].to_list()]
         outputs = []
 
         handler.update_progress(0, len(inputs))

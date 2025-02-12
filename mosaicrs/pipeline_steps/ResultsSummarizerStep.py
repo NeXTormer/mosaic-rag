@@ -28,7 +28,7 @@ class ResultsSummarizerStep(PipelineStep):
 
     # style note: most important class (in this case 'transform' should be at the top, below constructor)
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()):
-        full_texts = data.documents[self.source_column_name].to_list()
+        full_texts = [entry if entry is not None else "" for entry in data.documents[self.source_column_name].to_list()]
         summarized_texts = []
 
         print("Summarizing using model: {}".format(self.llm))
