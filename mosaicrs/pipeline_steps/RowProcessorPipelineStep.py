@@ -33,7 +33,7 @@ class RowProcessorPipelineStep(PipelineStep):
             output = handler.get_cache(input_hash)
 
             if output is None:
-                output, column_type = self.transform_row(input)
+                output, column_type = self.transform_row(input, handler)
                 handler.put_cache(input_hash, output)
 
             outputs.append(output)
@@ -49,7 +49,7 @@ class RowProcessorPipelineStep(PipelineStep):
 
 
     @abstractmethod
-    def transform_row(self, data) -> (str, Optional[str]):
+    def transform_row(self, data, handler: PipelineStepHandler) -> (any, Optional[str]):
         pass
 
     @abstractmethod

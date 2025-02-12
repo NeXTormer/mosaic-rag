@@ -3,6 +3,7 @@ import threading
 import time
 import uuid
 from typing import Any
+import traceback
 
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
@@ -38,9 +39,10 @@ class PipelineTask:
         self.start_time = None
         self.end_time = None
         self.pipeline = pipeline
+        self.pipeline_handler = PipelineStepHandler()
         self.thread_args = {
             'current_step': '',
-            'pipeline_step_handler': PipelineStepHandler(),
+            'pipeline_step_handler': self.pipeline_handler,
             'pipeline_progress': '0',
             'pipeline_percentage': 0,
             'result': None,
@@ -51,12 +53,13 @@ class PipelineTask:
 
 
     def start(self):
+        self.pipeline_handler.log('Executing pipeline with ID: ' + str(self.uuid))
         self.start_time = time.time()
         self.thread.start()
 
 
     def cancel(self):
-        self.thread_args['pipeline_step_handler'].should_cancel = True
+        self.pipeline_handler.should_cancel = True
         self.thread.join()
 
 
@@ -66,14 +69,14 @@ class PipelineTask:
             'current_step_index': self.thread_args['current_step_index'],
             'pipeline_progress': self.thread_args['pipeline_progress'],
             'pipeline_percentage': self.thread_args['pipeline_percentage'],
-            'logs': [],
+            'log': [],
             'step_output': {
                 '1': {
                     'log': 'Getting 1000 documents',
                 }
             }
         }
-        progress.update(self.thread_args['pipeline_step_handler'].get_status())
+        progress.update(self.pipeline_handler.get_status())
 
         result = None
         if self.thread_args['has_finished']:
@@ -99,6 +102,8 @@ def _run_pipeline(pipeline, args):
     query = ''
     parameters = {}
 
+    handler: PipelineStepHandler = args['pipeline_step_handler']
+
     if 'query' in steps:
         query = steps['query']
         del steps['query']
@@ -121,7 +126,7 @@ def _run_pipeline(pipeline, args):
     args['has_finished'] = False
 
 
-    print("Running pipeline. Query: " + query)
+    handler.log("Running pipeline. Query: " + query)
 
     keys = sorted([int(x) for x in steps.keys()])
 
@@ -131,7 +136,7 @@ def _run_pipeline(pipeline, args):
         step_id = steps[str(key)]['id']
         step_parameters = steps[str(key)]['parameters']
 
-        print("Processing " + step_id)
+        handler.log("Processing " + step_id)
 
         step = _get_class_from_id_and_parameters(step_id, step_parameters)
 
@@ -141,15 +146,21 @@ def _run_pipeline(pipeline, args):
         args['pipeline_progress'] = str(current_step_index) + '/' + str(total_steps)
         args['pipeline_percentage'] = current_step_index / total_steps
 
-        args['pipeline_step_handler'].reset(step_id)
-        data = step.transform(data, handler=args['pipeline_step_handler'])
+        handler.reset(step_id)
+        try:
+            data = step.transform(data, handler=handler)
+        except Exception as e:
+            handler.log('{}: {}'.format(type(e).__name__, e))
+            handler.log(traceback.format_exc())
+            break
+
         current_step_index += 1
 
     args['pipeline_progress'] = str(current_step_index) + '/' + str(total_steps)
     args['step_percentage'] = 1
     args['pipeline_percentage'] = 1
 
-    args['pipeline_step_handler'].log_stats()
+    handler.log_cache_statistics()
 
     args['intermediate_data'] = data
     args['has_finished'] = True

@@ -52,13 +52,13 @@ class MosaicDataSource(PipelineStep):
         response = requests.get(''.join([self.mosaic_url, self.search_path_part]), params=data.arguments)
 
         if response.status_code == 404:
-            logging.error('Source not found')
+            handler.log('Data Source service not found (404)')
             raise ValueError("Error: Source not found")
 
         json_data = json.loads(response.text)
 
         if "results" not in json_data:
-            logging.error('no \'results\' in json data')
+            handler.log('no \'results\' in json data')
             return data
 
         extracted_docs = []

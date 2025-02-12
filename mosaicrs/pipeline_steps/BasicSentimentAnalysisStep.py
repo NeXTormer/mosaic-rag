@@ -1,6 +1,8 @@
 from typing import Optional
 
 from transformers import pipeline
+
+from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.RowProcessorPipelineStep import RowProcessorPipelineStep
 
 class BasicSentimentAnalysisStep(RowProcessorPipelineStep):
@@ -9,7 +11,7 @@ class BasicSentimentAnalysisStep(RowProcessorPipelineStep):
 
         self.model = pipeline("text-classification",model='bhadresh-savani/distilbert-base-uncased-emotion', return_all_scores=True)
 
-    def transform_row(self, data: str) -> (str, Optional[str]):
+    def transform_row(self, data, handler: PipelineStepHandler):
         if data is None:
             return ''
         

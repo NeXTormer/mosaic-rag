@@ -8,7 +8,7 @@ class WordCounterStep(RowProcessorPipelineStep):
     def __init__(self, input_column: str, output_column: str):
         super().__init__(input_column, output_column)
 
-    def transform_row(self, data) -> (str, Optional[str]):
+    def transform_row(self, data, handler) -> (str, Optional[str]):
         return str(len(str(data).split(' '))), 'chip'
 
     def get_cache_fingerprint(self) -> str:

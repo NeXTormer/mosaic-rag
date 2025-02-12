@@ -9,7 +9,7 @@ from rank_bm25 import BM25Okapi
 class SimilarityMetrics(Enum):
     COSINE = "Cosine"
     EUCLIDEAN = "Euclidean"
-    MANHATTEN = "Manhatten"
+    MANHATTAN = "Manhattan"
     BM25 = "BM25"
 
 
@@ -40,7 +40,7 @@ class TFIDFRerankerStep(PipelineStep):
                 data.documents[reranking_score_name] = self.compute_cosine_scores(doc_tfidf, query_tfidf)
             elif self.similarity_metric == SimilarityMetrics.EUCLIDEAN:
                 data.documents[reranking_score_name] = self.compute_euclidean_distance_scores(doc_tfidf, query_tfidf)
-            elif self.similarity_metric == SimilarityMetrics.MANHATTEN:
+            elif self.similarity_metric == SimilarityMetrics.MANHATTAN:
                 data.documents[reranking_score_name] = self.compute_manhatten_distance_scores(doc_tfidf, query_tfidf)
 
         data.documents.sort_values(by=reranking_score_name, ascending= (False if self.similarity_metric in [SimilarityMetrics.COSINE, SimilarityMetrics.BM25] else True), inplace=True)

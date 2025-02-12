@@ -13,13 +13,20 @@ from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 
 import ssl
 
+
+
+# =========== Load Dependencies ===========
 try:
     _create_unverified_https_context = ssl._create_unverified_context
 except AttributeError:
     pass
 else:
     ssl._create_default_https_context = _create_unverified_https_context
+
+nltk.download("stopwords")
 nltk.download('punkt_tab')
+
+# ========= END Load Dependencies =========
 
 app = Flask(__name__)
 CORS(app)
@@ -30,7 +37,7 @@ task_list: dict[str, PipelineTask] = {}
 
 @app.route("/")
 def hello_world():
-    return "<h3>MosaicRS</h3>"
+    return "<h3>MosaicRS</h3>\n<a href='mosaicrs.felixholz.com'>"
 
 
 @app.get('/search')
@@ -71,9 +78,6 @@ def pipeline_info():
 @app.post('/task/enqueue')
 def pipeline_enqueue():
     pipeline = request.get_json()
-
-    print("Enqueueing pipeline with parameters:")
-    print(pipeline)
 
     task = PipelineTask(pipeline)
     task_id = task.uuid

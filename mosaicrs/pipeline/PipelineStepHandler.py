@@ -1,6 +1,7 @@
 from threading import Lock
 import redis
 import os
+import datetime
 
 
 class PipelineStepHandler:
@@ -27,11 +28,11 @@ class PipelineStepHandler:
             self.redis = redis.Redis(host=redis_host, port=6379, db=0, decode_responses=True)
             if self.redis.ping():
                 self.caching_enabled = True
-                print("Initializing PipelineStepHandler with caching enabled")
+                self.log("Initializing PipelineStepHandler with caching enabled")
 
         except redis.ConnectionError:
             self.caching_enabled = False
-            print("Could not connect to redis, disabling caching...")
+            self.log("Could not connect to redis, disabling caching...")
 
 
     def update_progress(self, current_iteration, total_iterations):
@@ -59,7 +60,7 @@ class PipelineStepHandler:
 
 
         with self.logs_lock:
-            data['log'] = "\n".join(self.logs)
+            data['log'] = self.logs
 
         return data
 
@@ -81,7 +82,7 @@ class PipelineStepHandler:
 
         self.redis.set(self.step_id + key, value)
         if self.log_cache_requests:
-            print('Caching: {}'.format(key))
+            self.log('Caching: {}'.format(key))
 
     def get_cache(self, key: str):
         if not self.caching_enabled:
@@ -89,20 +90,23 @@ class PipelineStepHandler:
 
         if self.redis.exists(self.step_id + key):
             if self.log_cache_requests:
-                print('Requesting cache: {} - HIT'.format(key))
+                self.log('Requesting cache: {} - HIT'.format(key))
             self.cache_hits += 1
             return self.redis.get(self.step_id + key)
         self.cache_misses += 1
         if self.log_cache_requests:
-            print('Requesting cache: {} - MISS'.format(key))
+            self.log('Requesting cache: {} - MISS'.format(key))
         return None
 
 
     def log(self, message: str):
-        self.logs.append('{}'.format(message))
+        with self.logs_lock:
+            msg = '{}: {}'.format(datetime.datetime.now().time(), message)
+            self.logs.append(msg)
+            print(msg)
 
 
 
-    def log_stats(self):
+    def log_cache_statistics(self):
         if self.caching_enabled:
-            print('Pipeline cache statistics: {} hits | {} misses'.format(self.cache_hits, self.cache_misses))
+            self.log('Cache statistics: {} hits | {} misses'.format(self.cache_hits, self.cache_misses))

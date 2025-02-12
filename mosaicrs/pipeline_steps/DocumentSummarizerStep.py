@@ -34,7 +34,7 @@ class DocumentSummarizerStep(PipelineStep):
         full_texts = [entry if entry is not None else "" for entry in data.documents[self.source_column_name].to_list()]
         summarized_texts = []
 
-        print("Summarizing using model: {}".format(self.llm))
+        handler.log("Summarizing using model: {}".format(self.llm))
 
 
         handler.update_progress(0, len(full_texts))

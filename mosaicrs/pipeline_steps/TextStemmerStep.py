@@ -16,7 +16,6 @@ class TextStemmerStep(PipelineStep):
         self.language_column = language_column
 
         self.retrieved_stemmers = {}
-        nltk.download('punkt_tab')
 
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
 

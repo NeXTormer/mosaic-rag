@@ -14,7 +14,7 @@ class ContentExtractorStep(RowProcessorPipelineStep):
         super().__init__(input_column, output_column)
 
 
-    def transform_row(self, data: str) -> (str, Optional[str]):
+    def transform_row(self, data, handler) -> (any, Optional[str]):
         if data is None:
             return ''
 

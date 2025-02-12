@@ -17,9 +17,6 @@ class StopWordRemovalStep(PipelineStep):
 
         self.retrieved_stopwords = {}
 
-        nltk.download("stopwords")
-        nltk.download('punkt_tab')
-
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
 
         inputs = [entry if entry is not None else "" for entry in data.documents[self.input_column].to_list()]
