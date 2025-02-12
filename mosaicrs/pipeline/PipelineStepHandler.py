@@ -18,6 +18,9 @@ class PipelineStepHandler:
 
         self.caching_enabled = False
 
+        self.logs = []
+        self.logs_lock = Lock()
+
 
         redis_host = os.environ.get('REDIS_HOST', 'localhost')
         try:
@@ -40,7 +43,8 @@ class PipelineStepHandler:
             self.progress = (self.progress[0] + 1, self.progress[1])
 
 
-    def get_progress(self):
+    def get_status(self):
+        data = {}
         with self.progress_lock:
             current = self.progress[0]
             total = self.progress[1]
@@ -50,10 +54,14 @@ class PipelineStepHandler:
             if total == 0:
                 total = 1
 
-            return {
-                'step_percentage': current / total,
-                'step_progress': '{}/{}'.format(current, total)
-            }
+            data['step_percentage'] = current / total
+            data['step_progress'] = '{}/{}'.format(current, total)
+
+
+        with self.logs_lock:
+            data['log'] = "\n".join(self.logs)
+
+        return data
 
     def reset(self, step_id: str):
         self.should_cancel = False
@@ -88,6 +96,11 @@ class PipelineStepHandler:
         if self.log_cache_requests:
             print('Requesting cache: {} - MISS'.format(key))
         return None
+
+
+    def log(self, message: str):
+        self.logs.append('{}'.format(message))
+
 
 
     def log_stats(self):
