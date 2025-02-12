@@ -1,3 +1,5 @@
+from typing import Optional
+
 from transformers import pipeline
 from mosaicrs.pipeline_steps.RowProcessorPipelineStep import RowProcessorPipelineStep
 
@@ -7,14 +9,14 @@ class BasicSentimentAnalysisStep(RowProcessorPipelineStep):
 
         self.model = pipeline("text-classification",model='bhadresh-savani/distilbert-base-uncased-emotion', return_all_scores=True)
 
-    def transform_row(self, data: str) -> str:
+    def transform_row(self, data: str) -> (str, Optional[str]):
         if data is None:
             return ''
         
         predictions = self.model(data)
         print(predictions)
 
-        return max(predictions[0], key=lambda x: x['score'])["label"]
+        return max(predictions[0], key=lambda x: x['score'])["label"], 'chip'
 
 
     @staticmethod

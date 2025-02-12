@@ -61,21 +61,36 @@ class PipelineTask:
 
 
     def get_status(self) -> dict[str, Any]:
-        data =  {
+        progress = {
             'current_step': self.thread_args['current_step'],
+            'current_step_index': self.thread_args['current_step_index'],
             'pipeline_progress': self.thread_args['pipeline_progress'],
             'pipeline_percentage': self.thread_args['pipeline_percentage'],
-            'result': None,
-            'has_finished': self.thread_args['has_finished'],
-            'metadata': None,
+            'logs': [],
+            'step_output': {
+                '1': {
+                    'log': 'Getting 1000 documents',
+                }
+            }
         }
-        data.update(self.thread_args['pipeline_step_handler'].get_status())
+        progress.update(self.thread_args['pipeline_step_handler'].get_status())
 
-        if self.thread_args['result'] is not None:
-            data['result'] = self.thread_args['result'].documents.to_json(orient='records')
-            data['metadata'] = self.thread_args['result'].metadata.to_json(orient='records')
+        result = None
+        if self.thread_args['has_finished']:
+            intermediate: PipelineIntermediate = self.thread_args['intermediate_data']
+
+            result = {
+                'data': intermediate.documents.to_json(orient='records'),
+                'aggregated_data': intermediate.aggregated_data.to_json(orient='records'),
+                'metadata': intermediate.metadata.to_json(orient='records'),
+            }
 
 
+        data =  {
+            'has_finished': self.thread_args['has_finished'],
+            'progress': progress,
+            'result': result,
+        }
         return data
 
 
@@ -100,7 +115,9 @@ def _run_pipeline(pipeline, args):
     args['step_percentage'] = 0
     args['pipeline_progress'] = str(current_step_index) + '/' + str(total_steps)
     args['pipeline_percentage'] = 0
-    args['result'] = None
+
+    args['intermediate_data'] = None
+
     args['has_finished'] = False
 
 
@@ -120,6 +137,7 @@ def _run_pipeline(pipeline, args):
 
 
         args['current_step'] = step.get_name()
+        args['current_step_index'] = key
         args['pipeline_progress'] = str(current_step_index) + '/' + str(total_steps)
         args['pipeline_percentage'] = current_step_index / total_steps
 
@@ -133,7 +151,7 @@ def _run_pipeline(pipeline, args):
 
     args['pipeline_step_handler'].log_stats()
 
-    args['result'] = data
+    args['intermediate_data'] = data
     args['has_finished'] = True
 
 

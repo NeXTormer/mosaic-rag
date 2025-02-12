@@ -62,6 +62,7 @@ class StopWordRemovalStep(PipelineStep):
 
         data.documents[self.output_column] = pre_processed_outputs
         data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
+        data.set_text_column(self.output_column)
 
         return data
 

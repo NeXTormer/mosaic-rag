@@ -16,6 +16,7 @@ class TextStemmerStep(PipelineStep):
         self.language_column = language_column
 
         self.retrieved_stemmers = {}
+        nltk.download('punkt_tab')
 
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
 
@@ -59,6 +60,7 @@ class TextStemmerStep(PipelineStep):
 
         data.documents[self.output_column] = pre_processed_outputs
         data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
+        data.set_text_column(self.output_column)
 
         return data
 

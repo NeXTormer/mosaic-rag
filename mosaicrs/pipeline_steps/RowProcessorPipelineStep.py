@@ -1,5 +1,6 @@
 import hashlib
 from abc import abstractmethod
+from typing import Optional
 
 from tqdm import tqdm
 
@@ -19,6 +20,7 @@ class RowProcessorPipelineStep(PipelineStep):
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler) -> PipelineIntermediate:
         inputs = [entry if entry is not None else "" for entry in data.documents[self.input_column].to_list()]
         outputs = []
+        column_type = None
 
         handler.update_progress(0, len(inputs))
 
@@ -31,7 +33,7 @@ class RowProcessorPipelineStep(PipelineStep):
             output = handler.get_cache(input_hash)
 
             if output is None:
-                output = self.transform_row(input)
+                output, column_type = self.transform_row(input)
                 handler.put_cache(input_hash, output)
 
             outputs.append(output)
@@ -40,11 +42,14 @@ class RowProcessorPipelineStep(PipelineStep):
         data.documents[self.output_column] = outputs
         data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
 
+        if column_type is not None:
+            data.set_column_type(self.output_column, column_type)
+
         return data
 
 
     @abstractmethod
-    def transform_row(self, data):
+    def transform_row(self, data) -> (str, Optional[str]):
         pass
 
     @abstractmethod

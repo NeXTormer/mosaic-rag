@@ -1,13 +1,18 @@
+from typing import Optional
+
+import nltk
+
 from mosaicrs.pipeline_steps.RowProcessorPipelineStep import RowProcessorPipelineStep
 import string
 from nltk.tokenize import word_tokenize
 
 class PunctuationRemovalStep(RowProcessorPipelineStep):
     def __init__(self, input_column: str, output_column: str):
+        nltk.download('punkt_tab')
         super().__init__(input_column, output_column)
 
 
-    def transform_row(self, data: str) -> str:
+    def transform_row(self, data: str) -> (str, Optional[str]):
         if data is None:
             return ''
 
@@ -17,7 +22,7 @@ class PunctuationRemovalStep(RowProcessorPipelineStep):
         tokenized_words = [word.translate(str.maketrans('','',string.punctuation)) for word in tokenized_words]
 
         cleaned_text = " ".join([word.strip() for word in tokenized_words if word != ''])
-        return cleaned_text
+        return cleaned_text, 'text'
 
     @staticmethod
     def get_info() -> dict:

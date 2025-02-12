@@ -70,19 +70,10 @@ class MosaicDataSource(PipelineStep):
         df_docs = pd.DataFrame(extracted_docs)
         df_docs["_original_ranking_"] = df_docs.index
 
-        # df_docs[self.target_column_name] = df_docs.apply(lambda row: self._request_full_text(row['id']), axis=1)
         df_docs[self.target_column_name] = None
 
         handler.update_progress(0, len(df_docs))
 
-        # # for tracking progress
-        # for index, row in df_docs.iterrows():
-        #     if handler.should_cancel:
-        #         break
-        #
-        #     df_docs.at[index, self.target_column_name] = self._request_full_text(row['id'])
-        #
-        #     handler.increment_progress()
 
         df_docs = asyncio.run(self._fetch_all_texts(handler, df_docs))
 
@@ -90,6 +81,7 @@ class MosaicDataSource(PipelineStep):
         
         data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
 
+        data.set_text_column(self.target_column_name)
 
         return data
 

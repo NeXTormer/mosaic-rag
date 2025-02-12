@@ -54,7 +54,7 @@ class DocumentSummarizerStep(PipelineStep):
             handler.increment_progress()
 
         data.documents[self.target_column_name] = summarized_texts
-
+        data.set_text_column(self.target_column_name)
         data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
 
         return data

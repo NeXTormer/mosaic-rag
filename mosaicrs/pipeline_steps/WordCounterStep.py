@@ -1,3 +1,5 @@
+from typing import Optional
+
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from mosaicrs.pipeline_steps.RowProcessorPipelineStep import RowProcessorPipelineStep
 
@@ -6,8 +8,8 @@ class WordCounterStep(RowProcessorPipelineStep):
     def __init__(self, input_column: str, output_column: str):
         super().__init__(input_column, output_column)
 
-    def transform_row(self, data):
-        return str(len(str(data).split(' ')))
+    def transform_row(self, data) -> (str, Optional[str]):
+        return str(len(str(data).split(' '))), 'chip'
 
     def get_cache_fingerprint(self) -> str:
         return ''

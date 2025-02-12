@@ -1,3 +1,5 @@
+from typing import Optional
+
 from tqdm import tqdm
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
@@ -12,7 +14,7 @@ class ContentExtractorStep(RowProcessorPipelineStep):
         super().__init__(input_column, output_column)
 
 
-    def transform_row(self, data: str) -> str:
+    def transform_row(self, data: str) -> (str, Optional[str]):
         if data is None:
             return ''
 
@@ -26,7 +28,7 @@ class ContentExtractorStep(RowProcessorPipelineStep):
 
         cleaned_text = "\n".join(filtered_lines)
 
-        return cleaned_text
+        return cleaned_text, 'text'
 
 
     @staticmethod
