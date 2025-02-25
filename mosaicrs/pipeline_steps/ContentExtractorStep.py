@@ -1,11 +1,11 @@
 from typing import Optional
-
+import numpy as np
 from tqdm import tqdm
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 import hashlib
-
+from mosaicrs.pipeline_steps.utils import get_blacklist_for_filtering
 from mosaicrs.pipeline_steps.RowProcessorPipelineStep import RowProcessorPipelineStep
 
 
@@ -17,25 +17,47 @@ class ContentExtractorStep(RowProcessorPipelineStep):
     def transform_row(self, data, handler) -> (any, Optional[str]):
         if data is None:
             return ''
+        
+        single_lines = [line.strip() for line in str(data).split("\n")]
+        blacklist_words = get_blacklist_for_filtering()
+        single_lines = [line for line in single_lines if not any(blw.lower() in line.lower() for blw in blacklist_words)]
 
-        # credits to chatgpt
-        lines = str(data).split("\n")
 
-        filtered_lines = [line for line in lines if len(line.split()) > 5]
+        avg_words_line_ngram = self.moving_avg_word_count(single_lines)
+        overall_average_word_count = sum([len(sentence.split(" ")) for sentence in single_lines]) / len(single_lines)
+        cleaned_lines = []
 
-        nav_keywords = ["home", "contact", "menu", "privacy", "terms", "about"]
-        filtered_lines = [line for line in filtered_lines if not any(nav in line.lower() for nav in nav_keywords)]
+        for line, avg in zip(single_lines, avg_words_line_ngram):
+            if avg >= overall_average_word_count*1.5:
+                cleaned_lines.append(line)
 
-        cleaned_text = "\n".join(filtered_lines)
+        handler.log("\n".join(cleaned_lines))
 
-        return cleaned_text, 'text'
 
+        if len(cleaned_lines) == 0:
+            #TODO: Potential Warning
+            return data, "text"
+        else:
+            return "\n".join(cleaned_lines), "text"
+
+    
+    def moving_avg_word_count(self, lines, window_size=5):
+        word_counts = [len(line.split(" ")) for line in lines]
+        avg_counts = []
+
+        for i in range(len(lines)):
+            start = max(0, i - window_size)
+            end = min(len(lines), i + window_size + 1)
+            avg_count = sum(word_counts[start:end]) / (end - start)
+            avg_counts.append(avg_count)
+
+        return avg_counts
 
     @staticmethod
     def get_info() -> dict:
         return {
             "name": ContentExtractorStep.get_name(),
-            "category": "Semantic Filtering",
+            "category": "Pre-Processing",
             "description": "Extract the content from the text.",
             "parameters": {
                 'input_column': {

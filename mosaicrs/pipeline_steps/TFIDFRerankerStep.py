@@ -29,7 +29,8 @@ class TFIDFRerankerStep(PipelineStep):
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
         handler.update_progress(1, 1)
 
-        reranking_score_name = "_reranking_score_" + str(len(data.history) + 1) + "_"
+        reranking_id = str(data.get_next_reranking_step_number())
+        reranking_score_name = "_reranking_score_" + reranking_id + "_"
 
         if self.similarity_metric == SimilarityMetrics.BM25:
             data.documents[reranking_score_name] = self.compute_bm25_scores(data)
@@ -43,7 +44,9 @@ class TFIDFRerankerStep(PipelineStep):
             elif self.similarity_metric == SimilarityMetrics.MANHATTAN:
                 data.documents[reranking_score_name] = self.compute_manhatten_distance_scores(doc_tfidf, query_tfidf)
 
-        data.documents.sort_values(by=reranking_score_name, ascending= (False if self.similarity_metric in [SimilarityMetrics.COSINE, SimilarityMetrics.BM25] else True), inplace=True)
+        reranking_rank_name = "_reranking_rank_" + reranking_id + "_"
+        data.documents[reranking_rank_name] = data.documents[reranking_score_name].rank(method="dense", ascending=(False if self.similarity_metric in [SimilarityMetrics.COSINE, SimilarityMetrics.BM25] else True)).astype(int)
+        data.set_rank_column(reranking_rank_name)
         data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
 
         return data

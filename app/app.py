@@ -25,6 +25,11 @@ else:
 
 nltk.download("stopwords")
 nltk.download('punkt_tab')
+nltk.download("punkt")
+nltk.download("averaged_perceptron_tagger")
+nltk.download("wordnet")
+nltk.download('averaged_perceptron_tagger_eng')
+#Install spacy lemmatization models with python -m spacy download fr_core_news_sm
 
 # ========= END Load Dependencies =========
 

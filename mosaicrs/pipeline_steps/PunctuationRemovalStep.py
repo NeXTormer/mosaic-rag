@@ -1,28 +1,57 @@
 from typing import Optional
-
 import nltk
+from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
+from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
+from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
+from tqdm import tqdm
+import hashlib
+from mosaicrs.pipeline_steps.utils import process_data_punctuation_removal
 
-from mosaicrs.pipeline_steps.RowProcessorPipelineStep import RowProcessorPipelineStep
-import string
-from nltk.tokenize import word_tokenize
-
-class PunctuationRemovalStep(RowProcessorPipelineStep):
-    def __init__(self, input_column: str, output_column: str):
+class PunctuationRemovalStep(PipelineStep):
+    def __init__(self, input_column: str, output_column: str, process_query: str):
         nltk.download('punkt_tab')
-        super().__init__(input_column, output_column)
+        self.input_column = input_column
+        self.output_column = output_column
+        self.process_query = True if process_query == "Yes" else False
 
 
-    def transform_row(self, data: str) -> (str, Optional[str]):
-        if data is None:
-            return ''
+    def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
+        if self.input_column not in data.documents:
+            handler.log(f"PunctuationRemoval - InputColumn: {self.input_column} not in the PipelineIntermediate DataFrame.")
+            return data
 
-        #Tokenize words
-        tokenized_words = word_tokenize(data) 
-        #Remove punctuation
-        tokenized_words = [word.translate(str.maketrans('','',string.punctuation)) for word in tokenized_words]
+        inputs = [entry if entry is not None else "" for entry in data.documents[self.input_column].to_list()]
+        outputs = []
 
-        cleaned_text = " ".join([word.strip() for word in tokenized_words if word != ''])
-        return cleaned_text, 'text'
+        if self.process_query:
+            handler.update_progress(0, len(inputs) + 1)
+        else:
+            handler.update_progress(0, len(inputs))
+
+        for input in tqdm(inputs):
+            if handler.should_cancel:
+                break
+
+            input_hash = hashlib.sha1((self.get_cache_fingerprint() + str(input)).encode()).hexdigest()
+            output = handler.get_cache(input_hash)
+
+            if output is None:
+                output = process_data_punctuation_removal(input)
+                handler.put_cache(input_hash, output)
+
+            outputs.append(output)
+            handler.increment_progress()
+
+        if self.process_query:
+            data.query = self.process_data_punctuation_removal(data.query)
+            handler.increment_progress()
+
+        data.documents[self.output_column] = outputs
+        data.set_text_column(self.output_column)
+        data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
+
+        return data
+        
 
     @staticmethod
     def get_info() -> dict:
@@ -46,6 +75,14 @@ class PunctuationRemovalStep(RowProcessorPipelineStep):
                     'enforce-limit': False,
                     'supported-values': ['cleaned-text', 'full-text'],
                     'default': 'cleaned-text',
+                },
+                'process_query': {
+                    'title': 'Query Pre-processing',
+                    'description': 'Should the query be also pre-processed?',
+                    'type': 'dropdown',
+                    'enforce-limit': True,
+                    'supported-values': ['Yes', 'No'],
+                    'default': 'Yes',
                 },
             }
         }

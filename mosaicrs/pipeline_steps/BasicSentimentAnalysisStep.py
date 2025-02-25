@@ -1,5 +1,5 @@
 from typing import Optional
-
+import torch
 from transformers import pipeline
 
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
@@ -8,18 +8,17 @@ from mosaicrs.pipeline_steps.RowProcessorPipelineStep import RowProcessorPipelin
 class BasicSentimentAnalysisStep(RowProcessorPipelineStep):
     def __init__(self, input_column:str, output_column:str):
         super().__init__(input_column, output_column)
-
-        self.model = pipeline("text-classification",model='bhadresh-savani/distilbert-base-uncased-emotion', return_all_scores=True)
-
+        self.model = pipeline("text-classification",model='bhadresh-savani/distilbert-base-uncased-emotion', top_k=None, device="cuda" if torch.cuda.is_available() else "cpu")
+        
     def transform_row(self, data, handler: PipelineStepHandler):
         if data is None:
             return ''
-        
-        predictions = self.model(data)
-        print(predictions)
-
-        return max(predictions[0], key=lambda x: x['score'])["label"], 'chip'
-
+        try:
+            predictions = self.model(data)
+            return max(predictions[0], key=lambda x: x['score'])["label"], 'chip'
+        except Exception as e:
+            handler.log(f"Prediction error: {type(e).__name__}: {e}")
+            return "Not available", "chip"
 
     @staticmethod
     def get_info() -> dict:

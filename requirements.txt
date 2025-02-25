@@ -16,3 +16,4 @@ openai~=1.59.8
 rank_bm25==0.2.2
 scikit-learn
 nltk==3.9.1
+contractions==0.1.73

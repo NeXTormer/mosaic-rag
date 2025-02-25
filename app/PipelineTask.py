@@ -19,6 +19,7 @@ from mosaicrs.pipeline_steps.PunctuationRemovalStep import PunctuationRemovalSte
 from mosaicrs.pipeline_steps.StopwordRemovalStep import StopWordRemovalStep
 from mosaicrs.pipeline_steps.TextStemmerStep import TextStemmerStep
 from mosaicrs.pipeline_steps.BasicSentimentAnalysisStep import BasicSentimentAnalysisStep
+from mosaicrs.pipeline_steps.TextLemmatizationStep import TextLemmatizerStep
 
 pipeline_steps_mapping = {
     "mosaic_datasource": MosaicDataSource,
@@ -27,11 +28,12 @@ pipeline_steps_mapping = {
     "content_extractor": ContentExtractorStep,
     "embedding_reranker": EmbeddingRerankerStep,
     "word_counter": WordCounterStep,
-    "tf_idf_reranker":TFIDFRerankerStep,
-    "punctuation_removal":PunctuationRemovalStep,
-    "stopword_removal":StopWordRemovalStep,
-    "text_stemmer":TextStemmerStep,
-    "basic_sentiment_analysis":BasicSentimentAnalysisStep
+    "tf_idf_reranker": TFIDFRerankerStep,
+    "punctuation_removal": PunctuationRemovalStep,
+    "stopword_removal": StopWordRemovalStep,
+    "text_stemmer": TextStemmerStep,
+    "basic_sentiment_analysis": BasicSentimentAnalysisStep,
+    "text_lemmatization": TextLemmatizerStep
 }
 
 class PipelineTask:

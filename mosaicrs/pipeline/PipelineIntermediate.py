@@ -34,10 +34,19 @@ class PipelineIntermediate:
 
 
     def set_text_column(self, column: str):
-        self.metadata.loc[len(self.metadata)] = [column, False, True, False]
+        self.add_update_column(column, False, True, False)
 
     def set_chip_column(self, column: str):
-        self.metadata.loc[len(self.metadata)] = [column, False, False, True]
+        self.add_update_column(column, False, False, True)
 
     def set_rank_column(self, column: str):
-        self.metadata.loc[len(self.metadata)] = [column, True, False, False]
+        self.add_update_column(column, True, False, False)
+        
+    def add_update_column(self, column, rank, text, chip):
+        if column in self.metadata["id"].values:
+            self.metadata.loc[self.metadata["id"] == column, ['rank', 'text', 'chip']] = [rank, text, chip]
+        else:
+            self.metadata.loc[len(self.metadata)] = [column, rank, text, chip]
+
+    def get_next_reranking_step_number(self):
+        return (self.metadata['rank'] == True).sum() + 1

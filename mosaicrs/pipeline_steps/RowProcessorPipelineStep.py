@@ -42,6 +42,8 @@ class RowProcessorPipelineStep(PipelineStep):
         data.documents[self.output_column] = outputs
         data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
 
+        handler.log(column_type)
+
         if column_type is not None:
             data.set_column_type(self.output_column, column_type)
 

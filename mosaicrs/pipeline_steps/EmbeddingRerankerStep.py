@@ -22,12 +22,14 @@ class EmbeddingRerankerStep(PipelineStep):
 
         #cosine similarity
         scores = query_embeddings @ doc_embeddings.T
-        reranking_score_name = "_reranking_score_" + str(len(data.history) + 1) + "_"
+        
+        reranking_id = str(data.get_next_reranking_step_number())
+        reranking_score_name = "_reranking_score_" + reranking_id + "_"
         data.documents[reranking_score_name] = scores
-        data.documents.sort_values(by=reranking_score_name, ascending=False, inplace=True)
-
+        reranking_rank_name = "_reranking_rank_" + reranking_id + "_"
+        data.documents[reranking_rank_name] = data.documents[reranking_score_name].rank(method="dense", ascending=False).astype(int)
+        data.set_rank_column(reranking_rank_name)
         data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
-
         return data
 
 

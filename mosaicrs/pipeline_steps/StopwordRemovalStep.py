@@ -1,12 +1,11 @@
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
-from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 import nltk
 from tqdm import tqdm
 import hashlib
-from mosaicrs.pipeline_steps.utils import translate_language_code
+from mosaicrs.pipeline_steps.utils import translate_language_code, process_data_stopword_removal
 
 class StopWordRemovalStep(PipelineStep):
 
@@ -15,10 +14,14 @@ class StopWordRemovalStep(PipelineStep):
         self.output_column = output_column
         self.language_column = language_column
 
-        self.retrieved_stopwords = {}
+        self.supported_stopword_sets = {}
+        self.unsupported_languages = set()
 
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
-
+        if self.input_column not in data.documents:
+            handler.log(f"StopwordRemoval - InputColumn: {self.input_column} not in the PipelineIntermediate DataFrame.")
+            return data
+        
         inputs = [entry if entry is not None else "" for entry in data.documents[self.input_column].to_list()]
         if self.language_column in data.documents:
             languages = data.documents[self.language_column].to_list()
@@ -27,6 +30,8 @@ class StopWordRemovalStep(PipelineStep):
             inputs = list(zip(inputs, ["" for _ in inputs]))
 
         pre_processed_outputs = []
+
+        self.supported_stopword_sets = self.initialize_stopwords(data)
 
         handler.update_progress(0, len(inputs))
 
@@ -37,31 +42,38 @@ class StopWordRemovalStep(PipelineStep):
             input_hash = hashlib.sha1(('rule-based' + str(input)).encode()).hexdigest()
             output = handler.get_cache(input_hash)
 
-            if output is None and language is not "":
+            if output is None:
                 supported_language = translate_language_code(language)
-                if supported_language is not "":
-                    if supported_language in self.retrieved_stopwords:
-                        selected_stopwords = self.retrieved_stopwords[supported_language]
-                    else:
-                        selected_stopwords = set(stopwords.words(supported_language))
-                        self.retrieved_stopwords[supported_language] = selected_stopwords
-
-                    withouth_stopwords = [word.strip() for word in word_tokenize(input) if word not in selected_stopwords]
-                    output = " ".join(withouth_stopwords)                    
+                if supported_language and supported_language in self.supported_stopword_sets:
+                    output = process_data_stopword_removal(input, self.supported_stopword_sets[supported_language])                  
                 else:
                     output = input
-                    #TODO: Warning Language not supported
+                    self.unsupported_languages.add(language)
 
                 handler.put_cache(input_hash, output)
 
             pre_processed_outputs.append(output)
             handler.increment_progress()
 
+        if self.unsupported_languages:
+            unsupported_lanuages_string = ", ".join(self.unsupported_languages)
+            handler.log(f"Languages: {unsupported_lanuages_string} are not supported for stopword removal.")
+
         data.documents[self.output_column] = pre_processed_outputs
         data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
         data.set_text_column(self.output_column)
 
         return data
+
+    def initialize_stopwords(self, data):
+        requiried_languages = data.documents[self.language_column].value_counts().to_dict()
+        supported_stopword_sets = {}
+        for k, _ in requiried_languages.items():
+            language_name = translate_language_code(k)
+            if language_name:
+                supported_stopword_sets[language_name] = set(stopwords.words(language_name))
+
+        return supported_stopword_sets
 
 
     @staticmethod
