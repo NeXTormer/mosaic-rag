@@ -82,6 +82,7 @@ class MosaicDataSource(PipelineStep):
         data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
 
         data.set_text_column(self.target_column_name)
+        data.set_rank_column('_original_ranking_')
 
         return data
 

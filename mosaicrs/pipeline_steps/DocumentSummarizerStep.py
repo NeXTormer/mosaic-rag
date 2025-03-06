@@ -29,7 +29,7 @@ class DocumentSummarizerStep(PipelineStep):
         self.summarize_prompt = summarize_prompt
 
 
-    def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()):
+    def transform(self, w: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()):
         full_texts = [entry if entry is not None else "" for entry in data.documents[self.source_column_name].to_list()]
         summarized_texts = []
 

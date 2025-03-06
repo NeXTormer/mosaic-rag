@@ -6,7 +6,7 @@ from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.RowProcessorPipelineStep import RowProcessorPipelineStep
 
 class BasicSentimentAnalysisStep(RowProcessorPipelineStep):
-    def __init__(self, input_column:str, output_column:str):
+    def __init__(self, input_column: str, output_column: str):
         super().__init__(input_column, output_column)
         self.model = pipeline("text-classification",model='bhadresh-savani/distilbert-base-uncased-emotion', top_k=None, device="cuda" if torch.cuda.is_available() else "cpu")
         
