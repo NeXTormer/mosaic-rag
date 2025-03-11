@@ -86,7 +86,7 @@ class PipelineTask:
 
             result = {
                 'data': intermediate.documents.to_json(orient='records'),
-                'result_description': f'Retrieved {len(intermediate.documents)} documents in {self.thread_args['elapsed_time']:0.3} seconds.',
+                'result_description': f"Retrieved {len(intermediate.documents)} documents in {self.thread_args['elapsed_time']:0.3} seconds.",
                 'aggregated_data': intermediate.aggregated_data.to_json(orient='records'),
                 'metadata': intermediate.metadata.to_json(orient='records'),
             }
