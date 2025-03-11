@@ -19,7 +19,7 @@ from mosaicrs.pipeline_steps.PunctuationRemovalStep import PunctuationRemovalSte
 from mosaicrs.pipeline_steps.StopwordRemovalStep import StopWordRemovalStep
 from mosaicrs.pipeline_steps.TextStemmerStep import TextStemmerStep
 from mosaicrs.pipeline_steps.BasicSentimentAnalysisStep import BasicSentimentAnalysisStep
-from mosaicrs.pipeline_steps.TextLemmatizationStep import TextLemmatizerStep
+# from mosaicrs.pipeline_steps.TextLemmatizationStep import TextLemmatizerStep
 
 pipeline_steps_mapping = {
     "mosaic_datasource": MosaicDataSource,
@@ -33,7 +33,7 @@ pipeline_steps_mapping = {
     "stopword_removal": StopWordRemovalStep,
     "text_stemmer": TextStemmerStep,
     "basic_sentiment_analysis": BasicSentimentAnalysisStep,
-    "text_lemmatization": TextLemmatizerStep
+    # "text_lemmatization": TextLemmatizerStep
 }
 
 class PipelineTask:
@@ -86,6 +86,7 @@ class PipelineTask:
 
             result = {
                 'data': intermediate.documents.to_json(orient='records'),
+                'result_description': f'Retrieved {len(intermediate.documents)} documents in {self.thread_args['elapsed_time']:0.3} seconds.',
                 'aggregated_data': intermediate.aggregated_data.to_json(orient='records'),
                 'metadata': intermediate.metadata.to_json(orient='records'),
             }
@@ -100,6 +101,8 @@ class PipelineTask:
 
 
 def _run_pipeline(pipeline, args):
+    _start_time = time.time()
+
     steps = pipeline['pipeline']
     query = ''
     parameters = {}
@@ -162,7 +165,13 @@ def _run_pipeline(pipeline, args):
     args['step_percentage'] = 1
     args['pipeline_percentage'] = 1
 
+    _end_time = time.time()
+
     handler.log_cache_statistics()
+    handler.log(f'Finished task in {_end_time - _start_time} seconds.')
+
+
+    args['elapsed_time'] = _end_time - _start_time
 
     args['intermediate_data'] = data
     args['has_finished'] = True

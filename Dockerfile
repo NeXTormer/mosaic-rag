@@ -7,12 +7,21 @@ WORKDIR /app
 # Install system dependencies and Python dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
+    cmake \
+    gcc \
+    python3-dev \
+    libffi-dev \
+    libssl-dev \
+    libblas-dev \
+    liblapack-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements.txt to the working directory
 COPY requirements.txt .
 
 # Install Python dependencies
+RUN pip install --upgrade pip setuptools wheel
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the app and mosaicrs folders into the container
