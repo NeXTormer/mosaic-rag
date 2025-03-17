@@ -106,6 +106,12 @@ class PipelineStepHandler:
             print(msg)
 
 
+    def get_cache_hit_ratio(self):
+        if self.caching_enabled:
+            if (self.cache_misses + self.cache_hits) == 0:
+                return 0
+            return float(self.cache_hits) / float(self.cache_misses + self.cache_hits)
+        return 0
 
     def log_cache_statistics(self):
         if self.caching_enabled:

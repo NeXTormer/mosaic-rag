@@ -72,12 +72,12 @@ class ResultsSummarizerStep(PipelineStep):
                     'default': 'full-text',
                 },
                 'output_column': {
-                    'title': 'Output metadata column name',
+                    'title': 'Output column name',
                     'description': 'The summarized text gets saved to this column..',
                     'type': 'dropdown',
                     'enforce-limit': False,
-                    'supported-values': ['summary'],
-                    'default': 'summary',
+                    'supported-values': ['Summary'],
+                    'default': 'Summary',
                 },
 
             }

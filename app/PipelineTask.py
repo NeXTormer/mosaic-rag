@@ -86,7 +86,7 @@ class PipelineTask:
 
             result = {
                 'data': intermediate.documents.to_json(orient='records'),
-                'result_description': f"Retrieved {len(intermediate.documents)} documents in {self.thread_args['elapsed_time']:0.3} seconds.",
+                'result_description': f"Retrieved {len(intermediate.documents)} documents in {self.thread_args['elapsed_time']:0.3} seconds. {int(self.thread_args['cache_hit_ratio'] * 100)}% cache hits.",
                 'aggregated_data': intermediate.aggregated_data.to_json(orient='records'),
                 'metadata': intermediate.metadata.to_json(orient='records'),
             }
@@ -172,6 +172,7 @@ def _run_pipeline(pipeline, args):
 
 
     args['elapsed_time'] = _end_time - _start_time
+    args['cache_hit_ratio'] = handler.get_cache_hit_ratio()
 
     args['intermediate_data'] = data
     args['has_finished'] = True
