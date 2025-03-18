@@ -1,17 +1,14 @@
-from mosaicrs.pipeline_steps.MosaicDataSource import MosaicDataSource
-from mosaicrs.pipeline.Pipeline import Pipeline
-from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
-from mosaicrs.pipeline_steps.DocumentSummarizerStep import DocumentSummarizerStep
-from mosaicrs.pipeline_steps.EmbeddingRerankerStep import EmbeddingRerankerStep
-from mosaicrs.pipeline_steps.ResultsSummarizerStep import ResultsSummarizerStep
+from litellm import completion
+import os
 
-mds = MosaicDataSource(output_column="fullText")
-summarizer = ResultsSummarizerStep(input_column="fullText", output_column="Test Summary")
+## set ENV variables
 
+response = completion(
+  model="openai/gemma2",
+  api_base='https://llms-inference.innkube.fim.uni-passau.de/',
+  api_key=os.environ["OPENAI_API_KEY"],
+  messages=[{ "content": "Hello, how are you?","role": "user"}]
+)
 
+print(response)
 
-pipeline = Pipeline(steps=[mds, summarizer])
-
-result, success = pipeline.run(data=PipelineIntermediate(query='Sport in Austria', arguments={'limit': 10, 'index': 'simplewiki', 'lang': 'eng'}))
-
-print(result.metadata.head())

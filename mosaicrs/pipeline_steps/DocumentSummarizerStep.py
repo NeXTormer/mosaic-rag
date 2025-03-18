@@ -1,6 +1,7 @@
 import pandas as pd
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 from mosaicrs.llm.DeepSeekLLMInterface import DeepSeekLLMInterface
+from mosaicrs.llm.LiteLLMLLMInterface import LiteLLMLLMInterface
 from mosaicrs.llm.T5Transformer import T5Transformer
 from tqdm import tqdm
 from mosaicrs.llm.LLMInterface import LLMInterface
@@ -22,14 +23,14 @@ class DocumentSummarizerStep(PipelineStep):
         if model == 'DeepSeekv3':
             self.llm = DeepSeekLLMInterface(system_prompt='You are a helpful assistant')
         else:
-            self.llm = T5Transformer(model)
+            self.llm = LiteLLMLLMInterface(model=model, system_prompt='You are a helpful assistant')
 
         self.source_column_name = input_column
         self.target_column_name = output_column
         self.summarize_prompt = summarize_prompt
 
 
-    def transform(self, w: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()):
+    def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()):
         full_texts = [entry if entry is not None else "" for entry in data.documents[self.source_column_name].to_list()]
         summarized_texts = []
 
@@ -71,8 +72,8 @@ class DocumentSummarizerStep(PipelineStep):
                     'description': 'LLM model instance to use for summarization. Can be any T5 transformer model.',
                     'type': 'dropdown',
                     'enforce-limit': False,
-                    'supported-values': ['DeepSeekv3', 'google/flan-t5-base'],
-                    'default': 'DeepSeekv3',
+                    'supported-values': ['DeepSeekv3', 'gemma2', 'qwen2.5', 'llama3.1'],
+                    'default': 'gemma2',
                 },
                 'input_column': {
                     'title': 'Input column name',

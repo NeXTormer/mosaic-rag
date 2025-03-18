@@ -29,6 +29,7 @@ COPY app/ ./app
 COPY mosaicrs/ ./mosaicrs
 
 COPY deepseek.apikey ./deepseek.apikey
+COPY innkube.apikey ./innkube.apikey
 
 # Expose the port the app runs on
 EXPOSE 5000

@@ -2,6 +2,7 @@ import pandas as pd
 from transformers import T5ForConditionalGeneration, T5Tokenizer
 
 from mosaicrs.llm.DeepSeekLLMInterface import DeepSeekLLMInterface
+from mosaicrs.llm.LiteLLMLLMInterface import LiteLLMLLMInterface
 from mosaicrs.llm.T5Transformer import T5Transformer
 from tqdm import tqdm
 from mosaicrs.llm.LLMInterface import LLMInterface
@@ -20,7 +21,7 @@ class ResultsSummarizerStep(PipelineStep):
         if model == 'DeepSeekv3':
             self.llm = DeepSeekLLMInterface(system_prompt='You are a helpful assistant part of a search engine. You are given a query and documents separated by <SEP>. Please summarize the documents in order to answer the query. Do not use any additional information not available in the given documents. The summary should be a maximum of five sentences without any listings. Mark important passages as bold.')
         else:
-            self.llm = T5Transformer(model)
+            self.llm = LiteLLMLLMInterface(model=model, system_prompt='You are a helpful assistant part of a search engine. You are given a query and documents separated by <SEP>. Please summarize the documents in order to answer the query. Do not use any additional information not available in the given documents. The summary should be a maximum of five sentences without any listings. Mark important passages as bold.')
 
         self.source_column_name = input_column
         self.target_column_name = output_column
@@ -60,8 +61,8 @@ class ResultsSummarizerStep(PipelineStep):
                     'description': 'LLM model instance to use for summarization. Can be any T5 transformer model.',
                     'type': 'dropdown',
                     'enforce-limit': False,
-                    'supported-values': ['DeepSeekv3'],
-                    'default': 'DeepSeekv3',
+                    'supported-values': ['DeepSeekv3', 'gemma2', 'qwen2.5', 'llama3.1'],
+                    'default': 'gemma2',
                 },
                 'input_column': {
                     'title': 'Input column name',

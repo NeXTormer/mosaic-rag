@@ -86,7 +86,7 @@ class PipelineTask:
 
             result = {
                 'data': intermediate.documents.to_json(orient='records'),
-                'result_description': f"Retrieved {len(intermediate.documents)} documents in {self.thread_args['elapsed_time']:0.3} seconds. {int(self.thread_args['cache_hit_ratio'] * 100)}% cache hits.",
+                'result_description': f"Retrieved {len(intermediate.documents)} documents in {_format_seconds(self.thread_args['elapsed_time'])} seconds. {int(self.thread_args['cache_hit_ratio'] * 100)}% cache hits.",
                 'aggregated_data': intermediate.aggregated_data.to_json(orient='records'),
                 'metadata': intermediate.metadata.to_json(orient='records'),
             }
@@ -194,3 +194,11 @@ def get_pipeline_info():
 
     return json.dumps(all_steps)
 
+
+def _format_seconds(seconds):
+    if seconds < 1:
+        return f"{seconds:.3f}"
+    elif seconds < 10:
+        return f"{seconds:.2f}"
+    else:
+        return f"{seconds:.1f}"
