@@ -33,8 +33,19 @@ class RowProcessorPipelineStep(PipelineStep):
             output = handler.get_cache(input_hash)
 
             if output is None:
-                output, column_type = self.transform_row(input, handler)
+                output, returned_column_type = self.transform_row(input, handler)
+
                 handler.put_cache(input_hash, output)
+                handler.put_cache(input_hash + 'column_type', returned_column_type)
+
+                if returned_column_type is not column_type:
+                    handler.log(self.get_name() + ": column type: " + returned_column_type)
+
+                if returned_column_type is not None:
+                    column_type = returned_column_type
+
+            else:
+                column_type = handler.get_cache(input_hash + 'column_type')
 
             outputs.append(output)
             handler.increment_progress()
@@ -42,7 +53,6 @@ class RowProcessorPipelineStep(PipelineStep):
         data.documents[self.output_column] = outputs
         data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
 
-        handler.log(column_type)
 
         if column_type is not None:
             data.set_column_type(self.output_column, column_type)
