@@ -7,6 +7,7 @@ import json
 
 from flask_cors import CORS
 
+from app.ConversationTask import ConversationTask
 from app.PipelineTask import get_pipeline_info, PipelineTask
 from mosaicrs.pipeline_steps.MosaicDataSource import MosaicDataSource
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
@@ -38,27 +39,34 @@ CORS(app)
 
 
 task_list: dict[str, PipelineTask] = {}
+conversation_list: dict[str, ConversationTask] = {}
 
 
 @app.route("/")
 def hello_world():
-    return "<h3>MosaicRS</h3>\n<a href='mosaicrs.felixholz.com'>"
+    return "<h3>MosaicRS</h3>\n<a href='mosaicrs.felixholz.com'></a>"
 
 
-@app.get('/search')
-def search():
-    query = request.args.get('q')
 
-    ds = MosaicDataSource()
-    response = Response(
-        ds.transform(PipelineIntermediate(query=query, arguments={'limit': 20})).documents.to_json(orient='records'),
-        mimetype='application/json')
-    return response
+@app.get('/task/chat/<string:chat_id>')
+def task_chat(task_id: str):
+    params = request.get_json()
+
+    model = params['model']
+    column =params['column']
+
+    pipeline_task = task_list[task_id]
+
+    conversation_task = ConversationTask(model, column, pipeline_task)
 
 
-@app.post('/pipeline/run')
-def pipeline_run():
-    return 'Deprecated', 405
+
+
+
+
+@app.post('/task/run')
+def task_run():
+    pass
 
     # pipeline = request.get_json()
     #

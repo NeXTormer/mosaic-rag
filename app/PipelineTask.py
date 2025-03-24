@@ -5,6 +5,8 @@ import uuid
 from typing import Any
 import traceback
 
+import pandas as pd
+
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.ContentExtractorStep import ContentExtractorStep
@@ -53,6 +55,8 @@ class PipelineTask:
         self.uuid = uuid.uuid4().hex
         self.thread = threading.Thread(target=_run_pipeline, args=(self.pipeline, self.thread_args))
 
+        self.final_df: pd.DataFrame = pd.DataFrame()
+
 
     def start(self):
         self.pipeline_handler.log('Executing pipeline with ID: ' + str(self.uuid))
@@ -84,6 +88,8 @@ class PipelineTask:
         if self.thread_args['has_finished']:
             intermediate: PipelineIntermediate = self.thread_args['intermediate_data']
 
+            self.final_df = intermediate.documents
+
             result = {
                 'data': intermediate.documents.to_json(orient='records'),
                 'result_description': f"Retrieved {len(intermediate.documents)} documents in {_format_seconds(self.thread_args['elapsed_time'])} seconds. {int(self.thread_args['cache_hit_ratio'] * 100)}% cache hits.",
@@ -97,6 +103,9 @@ class PipelineTask:
             'progress': progress,
             'result': result,
         }
+
+
+
         return data
 
 
