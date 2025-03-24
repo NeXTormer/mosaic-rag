@@ -63,6 +63,9 @@ class PipelineTask:
         self.start_time = time.time()
         self.thread.start()
 
+    def join(self):
+        self.thread.join()
+
 
     def cancel(self):
         self.pipeline_handler.should_cancel = True

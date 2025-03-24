@@ -49,15 +49,42 @@ def hello_world():
 
 
 @app.get('/task/chat/<string:chat_id>')
-def task_chat(task_id: str):
-    params = request.get_json()
+def task_chat(chat_id: str):
 
-    model = params['model']
-    column =params['column']
+    print(request.args)
+
+    model = request.args.get('model')
+    column = request.args.get('column')
+
+    task_id = request.args.get('task_id')
+
+    if task_id not in task_list:
+        return Response("Task ID not found", status=404)
 
     pipeline_task = task_list[task_id]
 
-    conversation_task = ConversationTask(model, column, pipeline_task)
+    if chat_id == 'new':
+        conversation_task = ConversationTask(model, column, pipeline_task)
+        conversation_list[conversation_task.uuid] = conversation_task
+
+        return Response(
+            conversation_task.uuid,
+            mimetype='text/plain')
+
+    else:
+        conversation_task = conversation_list[chat_id]
+        user_message = request.args.get('message')
+
+        print('received message:', user_message)
+
+        model_response = conversation_task.add_request(user_message)
+
+        return Response(
+            model_response,
+            mimetype='text/plain'
+        )
+
+
 
 
 
@@ -66,19 +93,22 @@ def task_chat(task_id: str):
 
 @app.post('/task/run')
 def task_run():
-    pass
+    pipeline = request.get_json()
 
-    # pipeline = request.get_json()
-    #
-    # print("Running pipeline with parameters:")
-    # print(pipeline)
+    task = PipelineTask(pipeline)
+    task_id = task.uuid
+    task_list[task_id] = task
 
-    # result = run_pipeline_old(pipeline)
-    # response = Response(
-    #     result.documents.to_json(orient='records'),
-    #     mimetype='application/json')
-    # return response
+    print('run task with id {}'.format(task_id))
 
+    task.start()
+    task.join()
+
+    response = Response(
+        json.dumps(task.get_status()),
+        mimetype='application/json')
+
+    return response
 
 @app.get('/pipeline/info')
 def pipeline_info():
@@ -95,6 +125,8 @@ def pipeline_enqueue():
     task = PipelineTask(pipeline)
     task_id = task.uuid
     task_list[task_id] = task
+
+    print('queued task with id {}'.format(task_id))
 
 
     task.start()
