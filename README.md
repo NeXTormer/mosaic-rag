@@ -1,15 +1,21 @@
-# mosaicRS
+# mosaicRAG
 
-This is mosaicRS, a retrieval system library for mosaic (or other data sources).
+This is mosaicRAG, a retrieval system and retrieval augmented generation library for Mosaic (and other data sources).
+
+
+### Features:
+- build your own retrieval pipeline
+  - summerizers, rerankers, preprocessors, metadata analyzers
+- (basic) conversational search
+- public API
+- analyze search data
 
 ### Future features:
-- Retrieval Augmented Generation (RAG)
-- Conversational search
 - Topic modelling
-- Summarized results
+- persistent pipeline 
+- improve RAG features
+- query enhancement
+- explainability
+- knowledge graphs
 
-A working implementation including a web-interface can be found as mosaic-rs-service
-
-
-## Dev infos
 

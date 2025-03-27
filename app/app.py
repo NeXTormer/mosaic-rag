@@ -44,7 +44,7 @@ conversation_list: dict[str, ConversationTask] = {}
 
 @app.route("/")
 def hello_world():
-    return "<h3>MosaicRS</h3>\n<a href='mosaicrs.felixholz.com'></a>"
+    return "<h3>MosaicRAG</h3>\n<a href='mosaicrs.felixholz.com'></a>"
 
 
 

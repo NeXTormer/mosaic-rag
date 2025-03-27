@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 
 [project]
-name = "mosaicrs"
-version = "0.0.1"
+name = "mosaicrag"
+version = "1.1.0"
 authors = [
   { name="Daniel Scharf", email="daniel.scharf@tugraz.at" },
   { name="Felix Holz", email="felix.holz@me.com" },
