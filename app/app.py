@@ -15,7 +15,6 @@ from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 import ssl
 
 
-
 # =========== Load Dependencies ===========
 try:
     _create_unverified_https_context = ssl._create_unverified_context
@@ -37,7 +36,6 @@ nltk.download('averaged_perceptron_tagger_eng')
 app = Flask(__name__)
 CORS(app)
 
-
 task_list: dict[str, PipelineTask] = {}
 conversation_list: dict[str, ConversationTask] = {}
 
@@ -45,7 +43,6 @@ conversation_list: dict[str, ConversationTask] = {}
 @app.route("/")
 def hello_world():
     return "<h3>MosaicRAG</h3>\n<a href='mosaicrs.felixholz.com'></a>"
-
 
 
 @app.get('/task/chat/<string:chat_id>')
@@ -85,12 +82,6 @@ def task_chat(chat_id: str):
         )
 
 
-
-
-
-
-
-
 @app.post('/task/run')
 def task_run():
     pipeline = request.get_json()
@@ -109,6 +100,7 @@ def task_run():
         mimetype='application/json')
 
     return response
+
 
 @app.get('/pipeline/info')
 def pipeline_info():

@@ -11,6 +11,7 @@ from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.ContentExtractorStep import ContentExtractorStep
 from mosaicrs.pipeline_steps.EmbeddingRerankerStep import EmbeddingRerankerStep
+from mosaicrs.pipeline_steps.MeiliDataSource import MeiliDataSource
 from mosaicrs.pipeline_steps.MosaicDataSource import MosaicDataSource
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from mosaicrs.pipeline_steps.DocumentSummarizerStep import DocumentSummarizerStep
@@ -25,6 +26,7 @@ from mosaicrs.pipeline_steps.BasicSentimentAnalysisStep import BasicSentimentAna
 
 pipeline_steps_mapping = {
     "mosaic_datasource": MosaicDataSource,
+    "meili_datasource": MeiliDataSource,
     "llm_summarizer": DocumentSummarizerStep,
     "all_results_summarizer": ResultsSummarizerStep,
     "content_extractor": ContentExtractorStep,
