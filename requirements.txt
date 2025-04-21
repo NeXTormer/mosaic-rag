@@ -22,3 +22,4 @@ numpy~=2.2.0
 setuptools
 litellm
 openai
+gitpython
