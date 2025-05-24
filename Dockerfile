@@ -1,5 +1,5 @@
 FROM python:3.11-slim AS app
-LABEL maintainer="Felix Holz <felix.holz@tugraz.at>"
+LABEL maintainer="Felix Holz <felix.holz@me.com>"
 
 # Set the working directory in the container
 WORKDIR /app
@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     gcc \
+    git \
     python3-dev \
     libffi-dev \
     libssl-dev \
