@@ -63,6 +63,9 @@ class StopWordRemovalStep(PipelineStep):
         data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
         data.set_text_column(self.output_column)
 
+        handler.log("TEST1234")
+        
+
         return data
 
     def initialize_stopwords(self, data):

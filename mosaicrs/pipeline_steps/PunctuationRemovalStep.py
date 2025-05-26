@@ -43,7 +43,7 @@ class PunctuationRemovalStep(PipelineStep):
             handler.increment_progress()
 
         if self.process_query:
-            data.query = self.process_data_punctuation_removal(data.query)
+            data.query = process_data_punctuation_removal(data.query)
             handler.increment_progress()
 
         data.documents[self.output_column] = outputs

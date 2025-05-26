@@ -2,6 +2,9 @@ import string
 from nltk.tokenize import word_tokenize
 import unicodedata
 import contractions
+import numpy as np
+from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
+import regex as re
 
 def translate_language_code(language_code:str):
     language_dict = {
@@ -61,5 +64,25 @@ def get_lemmatization_code(language_name:str):
     
     return ""
               
+def get_most_current_ranking(data: PipelineIntermediate):
+    column_name_list = data.documents.columns.to_list()
+
+    if "_original_ranking_" not in column_name_list:
+        return np.arange(1,len(data.documents)+1).tolist()
+    
+    ranking = data.documents["_original_ranking_"].to_list()
+    
+    highest_reranking_id = 0
+    for column_name in column_name_list:
+        match = re.match(r"_reranking_rank_(\d+)_", column_name)
+        if match is not None:
+            reranking_id = int(match.groups()[0])
+            if reranking_id > highest_reranking_id:
+                highest_reranking_id = reranking_id
+
+    if highest_reranking_id != 0:
+        ranking = data.documents["_reranking_rank_"+str(highest_reranking_id)+"_"].to_list()
+
+    return ranking
 
 

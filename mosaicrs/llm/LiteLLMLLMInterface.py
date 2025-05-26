@@ -6,6 +6,8 @@ from mosaicrs.llm.LLMInterface import LLMInterface
 
 class LiteLLMLLMInterface(LLMInterface):
 
+    supported_models = ["gemma2", "qwen2.5", "llama3.1"]
+
     def __init__(self, system_prompt='', model='gemma2'):
         LLMInterface.__init__(self)
 
@@ -15,6 +17,7 @@ class LiteLLMLLMInterface(LLMInterface):
         self.system_prompt = system_prompt
         self.model = '' + model
         self.client = openai.OpenAI(api_key=api_key, base_url='https://llms-inference.innkube.fim.uni-passau.de')
+
 
     def generate(self, prompt: str):
         response = self.client.chat.completions.create(

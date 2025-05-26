@@ -68,7 +68,7 @@ class MosaicDataSource(PipelineStep):
                     extracted_docs.append(doc)
         
         df_docs = pd.DataFrame(extracted_docs)
-        df_docs["_original_ranking_"] = df_docs.index
+        df_docs["_original_ranking_"] = df_docs.index + 1
 
         df_docs[self.target_column_name] = None
 

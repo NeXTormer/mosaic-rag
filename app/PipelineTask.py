@@ -23,6 +23,8 @@ from mosaicrs.pipeline_steps.StopwordRemovalStep import StopWordRemovalStep
 from mosaicrs.pipeline_steps.TextStemmerStep import TextStemmerStep
 from mosaicrs.pipeline_steps.BasicSentimentAnalysisStep import BasicSentimentAnalysisStep
 # from mosaicrs.pipeline_steps.TextLemmatizationStep import TextLemmatizerStep
+from mosaicrs.pipeline_steps.TournamentStyleLLMRerankerStep import TournamentStyleLLMRerankerStep
+from mosaicrs.pipeline_steps.GroupStyleLLMRerankerStep import GroupStyleLLMRerankerStep
 
 pipeline_steps_mapping = {
     "mosaic_datasource": MosaicDataSource,
@@ -37,7 +39,9 @@ pipeline_steps_mapping = {
     "stopword_removal": StopWordRemovalStep,
     "text_stemmer": TextStemmerStep,
     "basic_sentiment_analysis": BasicSentimentAnalysisStep,
-    # "text_lemmatization": TextLemmatizerStep
+    # "text_lemmatization": TextLemmatizerStep,
+    "tournament_llm_reranker": TournamentStyleLLMRerankerStep,
+    "group_llm_reranker": GroupStyleLLMRerankerStep,
 }
 
 class PipelineTask:

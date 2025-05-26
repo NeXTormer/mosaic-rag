@@ -49,7 +49,7 @@ class TFIDFRerankerStep(PipelineStep):
         data.set_rank_column(reranking_rank_name)
         data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
 
-        data.set_rank_column(reranking_score_name)
+        #data.set_rank_column(reranking_score_name)
         return data
 
     def compute_cosine_scores(self, doc_tfidf, query_tfidf):
