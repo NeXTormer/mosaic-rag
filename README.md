@@ -1,5 +1,5 @@
 # mosaicRAG
- 
+ad
 This is mosaicRAG, a retrieval system and retrieval augmented generation library for Mosaic (and other data sources).
 
 #### Links:
