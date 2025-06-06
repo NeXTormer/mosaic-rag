@@ -28,7 +28,7 @@ from mosaicrs.pipeline_steps.GroupStyleLLMRerankerStep import GroupStyleLLMReran
 
 pipeline_steps_mapping = {
     "mosaic_datasource": MosaicDataSource,
-    "meili_datasource": MeiliDataSource,
+    # "meili_datasource": MeiliDataSource,
     "llm_summarizer": DocumentSummarizerStep,
     "all_results_summarizer": ResultsSummarizerStep,
     "content_extractor": ContentExtractorStep,

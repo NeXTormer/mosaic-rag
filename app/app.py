@@ -227,6 +227,26 @@ def task_chat(chat_id: str):
             mimetype='text/plain'
         )
 
+@app.post('/pipeline/save')
+def task_run():
+    pipeline = request.get_json()
+
+
+    response = Response(
+        json.dumps('400'),
+        mimetype='application/json')
+
+    return response
+
+
+@app.post('/pipeline/restore')
+def task_run():
+
+    response = Response(
+        '400',
+        mimetype='application/json')
+
+    return response
 
 @app.post('/task/run')
 def task_run():
