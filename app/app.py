@@ -11,7 +11,17 @@ import logging
 from pathlib import Path
 from flask import Flask, send_from_directory, abort
 import git # GitPython library
+import nltk
+from flask import Flask
+from flask import request
+# ... other imports
+import git  # GitPython library
+import json
+import redis
+import shortuuid
 
+from flask_cors import CORS
+# ... rest of your imports
 
 import json
 
@@ -149,6 +159,22 @@ except (FileNotFoundError, ConnectionError, RuntimeError) as e:
 
 # ========= END Load Dependencies =========
 
+
+# ========= Redis Setup =========
+# Connect to Redis. Assumes Redis is running on localhost:6379.
+# For production, consider using environment variables for connection details.
+try:
+    redis_host = os.environ.get('REDIS_HOST', 'localhost')
+
+    redis_client = redis.Redis(host=redis_host, port=6379, db=0, decode_responses=True)
+    # Ping the server to check the connection
+    redis_client.ping()
+    logging.info("Successfully connected to Redis.")
+except redis.exceptions.ConnectionError as e:
+    logging.error(f"Could not connect to Redis: {e}. Pipeline save/restore will not work.")
+    redis_client = None
+
+
 app = Flask(__name__)
 CORS(app)
 
@@ -227,26 +253,47 @@ def task_chat(chat_id: str):
             mimetype='text/plain'
         )
 
+
 @app.post('/pipeline/save')
-def task_run():
-    pipeline = request.get_json()
+def save_pipeline():
+    if not redis_client:
+        print("Redis connection not available.")
+        return Response("Service Unavailable: Redis connection not available.", status=503)
+
+    pipeline_config = request.get_json()
+    print(pipeline_config)
+    if not pipeline_config:
+        return Response("Bad Request: No JSON payload received.", status=400)
+
+    pipeline_id = shortuuid.uuid()
+    redis_key = f"pipeline:{pipeline_id}"
+
+    try:
+        redis_client.set(redis_key, json.dumps(pipeline_config))
+    except redis.exceptions.RedisError as e:
+        return Response("Internal Server Error: Could not save pipeline.", status=500)
+
+    return Response(pipeline_id, mimetype='text/plain', status=201)
 
 
-    response = Response(
-        json.dumps('400'),
-        mimetype='application/json')
+@app.get('/pipeline/restore/<string:pipeline_id>')
+def restore_pipeline(pipeline_id: str):
+    if not redis_client:
+        return Response("Service Unavailable: Redis connection not available.", status=503)
 
-    return response
+    redis_key = f"pipeline:{pipeline_id}"
 
+    try:
+        pipeline_config_json = redis_client.get(redis_key)
+    except redis.exceptions.RedisError as e:
+        return Response("Internal Server Error: Could not retrieve pipeline.", status=500)
 
-@app.post('/pipeline/restore')
-def task_run():
+    if pipeline_config_json is None:
+        return Response(f"Not Found: Pipeline with ID '{pipeline_id}' not found.", status=404)
 
-    response = Response(
-        '400',
-        mimetype='application/json')
+    logging.info(f"Restored pipeline with ID: {pipeline_id}")
+    return Response(pipeline_config_json, mimetype='application/json', status=200)
 
-    return response
 
 @app.post('/task/run')
 def task_run():
@@ -327,6 +374,3 @@ def task_cancel(task_id: str):
         'Success',
         mimetype='text/plain')
     return response
-
-
-
