@@ -39,7 +39,7 @@ class ChromaDataSource(PipelineStep):
         query_text = data.query
         data.documents = self.query_chromadb_to_dataframe(query_text)
         data.set_text_column('full-text')
-        data.set_rank_column('distance')
+        data.set_rank_column('chromadb_distance')
 
         handler.increment_progress()
         return data
@@ -61,11 +61,12 @@ class ChromaDataSource(PipelineStep):
 
         data_for_df = [
             {
-                'title': meta.get('main_content', 'No Title'),
+                'title': meta.get('url'),
                 'full-text': doc,
                 'url': meta.get('url'),
-                'distance': dist,
-                'id': doc_id
+                'chromadb_distance': dist,
+                'id': doc_id,
+                'curlielabels': meta.get('curlielabels')
             }
             for doc_id, doc, meta, dist in zip(ids, documents, metadatas, distances)
         ]
