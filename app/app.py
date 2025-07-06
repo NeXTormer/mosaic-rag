@@ -26,9 +26,11 @@ from flask_cors import CORS
 import json
 
 from flask_cors import CORS
+from sentence_transformers import SentenceTransformer
 
 from app.ConversationTask import ConversationTask
 from app.PipelineTask import get_pipeline_info, PipelineTask
+from mosaicrs.pipeline_steps.ChromaDataSource import ChromaDataSource
 from mosaicrs.pipeline_steps.MosaicDataSource import MosaicDataSource
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 
@@ -78,6 +80,7 @@ def fetch_flutter_web_app(repo_url: str, local_path: Path, web_build_dir: Path) 
     """
     web_root_path = local_path / web_build_dir
     repo = None
+
 
     try:
         if local_path.exists():
@@ -156,6 +159,14 @@ except (FileNotFoundError, ConnectionError, RuntimeError) as e:
      logging.critical(f"FATAL: Could not initialize Flutter web app from Git. Server cannot start. Error: {e}")
      # Exit if fetching fails critically and no local copy is usable
      exit(1) # Or raise an exception that stops the WSGI server if applicable
+
+
+# --- MODIFIED: Lazy load the model on first instantiation ---
+if ChromaDataSource.model is None:
+    print(f"Loading embedding model for the first time: '{ChromaDataSource.EMBEDDING_MODEL}'...")
+    ChromaDataSource.model = SentenceTransformer(ChromaDataSource.EMBEDDING_MODEL)
+    print("Model loaded successfully.")
+
 
 # ========= END Load Dependencies =========
 

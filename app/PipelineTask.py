@@ -9,6 +9,7 @@ import pandas as pd
 
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
+from mosaicrs.pipeline_steps.ChromaDataSource import ChromaDataSource
 from mosaicrs.pipeline_steps.ContentExtractorStep import ContentExtractorStep
 from mosaicrs.pipeline_steps.EmbeddingRerankerStep import EmbeddingRerankerStep
 from mosaicrs.pipeline_steps.MeiliDataSource import MeiliDataSource
@@ -28,6 +29,7 @@ from mosaicrs.pipeline_steps.GroupStyleLLMRerankerStep import GroupStyleLLMReran
 
 pipeline_steps_mapping = {
     "mosaic_datasource": MosaicDataSource,
+    "chroma_datasource": ChromaDataSource,
     # "meili_datasource": MeiliDataSource,
     "llm_summarizer": DocumentSummarizerStep,
     "all_results_summarizer": ResultsSummarizerStep,
@@ -55,6 +57,8 @@ class PipelineTask:
             'pipeline_step_handler': self.pipeline_handler,
             'pipeline_progress': '0',
             'pipeline_percentage': 0,
+            'current_step_index': 0,
+            'has_finished': False,
             'result': None,
         }
 

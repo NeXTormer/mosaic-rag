@@ -17,7 +17,7 @@ class DeepSeekLLMInterface(LLMInterface):
 
     def generate(self, prompt: str):
         response = self.client.chat.completions.create(
-            model='deepseek-chat',
+            model='deepseek-reasoner',
             messages=[
                 {"role": "system", "content": self.system_prompt},
                 {"role": "user", "content": "Summarize: " + prompt},
