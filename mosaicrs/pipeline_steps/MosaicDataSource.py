@@ -10,6 +10,7 @@ import logging
 import asyncio
 import aiohttp
 import ssl
+from mosaicrs.pipeline_steps.utils import get_most_current_ranking
 
 
 class MosaicDataSource(PipelineStep):
@@ -27,6 +28,8 @@ class MosaicDataSource(PipelineStep):
 
 
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
+        data.arguments.clear()
+
         if self.consider_query:
             # Check query for multiple words and if so convert to correct format
             if re.search("^[a-zA-Z]+(\+[a-zA-Z]+)*$", data.query) is None:
@@ -46,7 +49,9 @@ class MosaicDataSource(PipelineStep):
             if "q" in data.arguments:
                 data.arguments.pop("q")
 
-        data.arguments['index'] = self.index
+        if self.index != "all":
+            data.arguments['index'] = self.index
+
         data.arguments['limit'] = int(self.limit)
 
         response = requests.get(''.join([self.mosaic_url, self.search_path_part]), params=data.arguments)
@@ -77,12 +82,31 @@ class MosaicDataSource(PipelineStep):
 
         df_docs = asyncio.run(self._fetch_all_texts(handler, df_docs))
 
-        data.documents = df_docs
-        
-        data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
 
-        data.set_text_column(self.target_column_name)
-        data.set_rank_column('_original_ranking_')
+        if data.documents.empty:
+            data.documents = df_docs
+
+            data.set_text_column(self.target_column_name)
+            data.set_rank_column('_original_ranking_')
+        else:
+            #V1: First all results of source 1 and then all of source 2
+            prev_max_ranking_id = max(get_most_current_ranking(data))
+            df_docs["_original_ranking_"] += prev_max_ranking_id
+            print(prev_max_ranking_id)
+            print(df_docs)
+            #V2: First 1. and 1. of both sources, then 2. and 2., and so on
+
+            if len(data.metadata[data.metadata["rank"]]) != 1:  
+                ranking_columns = data.metadata[data.metadata["rank"]]["id"].to_list()
+                for ranking_column in ranking_columns:
+                    if ranking_column != "_original_ranking_":
+                        df_docs[ranking_column] = df_docs["_original_ranking_"]
+
+            data.documents = pd.concat([data.documents, df_docs], ignore_index=True)
+
+            print(data.documents)
+
+        data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
 
         return data
 
@@ -127,7 +151,7 @@ class MosaicDataSource(PipelineStep):
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'required': True,
-                    'supported-values': ['tech-knowledge', 'harry-potter', 'owi-snapshot-20240205-eng', 'simplewiki', 'unis-austria', 'medical-information', 'recipes'],
+                    'supported-values': ['tech-knowledge', 'harry-potter', 'owi-snapshot-20240205-eng', 'simplewiki', 'unis-austria', 'medical-information', 'recipes', 'all'],
                     'default': 'simplewiki',
                 },
             }

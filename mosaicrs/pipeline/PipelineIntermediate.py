@@ -49,4 +49,4 @@ class PipelineIntermediate:
             self.metadata.loc[len(self.metadata)] = [column, rank, text, chip]
 
     def get_next_reranking_step_number(self):
-        return (self.metadata['rank'] == True).sum() + 1
+        return (self.metadata['rank'] == True).sum()

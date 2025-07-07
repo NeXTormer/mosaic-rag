@@ -207,31 +207,80 @@ name of the step.
     - `default`: Default value for the parameter.
 
 
-## Pipeline steps
 `documentation still in progress`
 
+## PipelineIntermediate
+The PipelineIntermediate object serves as the primary means of communication between pipeline steps. Each step in the pipeline receives a PipelineIntermediate object as input and returns the altered one as output. This object consists of three main components:
+| Name | Description |
+|--|--|
+| Documents | This DataFrame contains the current data as modified by the most recent pipeline step, along with individual ranking scores, ranks, and additional metadata such as IDs and URLs.
+| History | The history dictionary stores a copy of the documents DataFrame after each individual pipeline step. This allows for detailed analysis of how each step modifies the retrieved data. |
+| Metadata | The `metadata` DataFrame contains information about each column in the `documents` DataFrame that has a specific role or purpose. Columns can have one or more of the following properties: `rank`, `text`, or `chip`. Columns marked with the `rank` property are used for ranking purposes. These columns consist of increasing integers starting from 1, where a value of 1 indicates the most relevant document. Relevance decreases as the rank number increases. Columns with the `rank` property are also displayed in the UI within the ranking dropdown menu. Columns with the `text`property contain text which can be used as an output in the UI. All columns with this property are shown in the text-drop-down field in the UI. In columns with the property `chip` are small bits of information (for example the result of a MetadataAnalysis step) which are then display in chip form in the UI for each individual retrieved result.|
 
-- PipelineStep
-  - Abstract base class for all other steps. It has to be implemented by each class or at least present in the inheritance hierarchy (RowProcessorPipelineStep). Defines the abstract methods:
-    - def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler) -> PipelineIntermediate:
-    - def get_info() -> dict:
-    - def get_name() -> str:
-  - The last two methods, “get_info()” and “get_name()” are also static and are mainly present to give the correct description of the respective steps to the frontend.
-- RowProcessorPipelineStep
-  - RowProcessorPipelineStep implements PipelineStep but elsewise is a special case, where itself is again a class which should be implemented by other steps. The class adapts the “transform” method of the base class PipelineStep and introduces a new method, which every sub-class, which derives from it has to implement:
-    - def transform_row(self, data, handler: PipelineStepHandler) -> (any, Optional\[str\]):
-  - The RowProcessorPipelineStep implements a way to iterate over the PipelineIntermediate row by row and apply a transformation (“transform_row”) on each of the strings of the selected column. It takes over all the responsibility for caching, PipelineIntermediate updating, and progress tracking, whilst the class which implements RowProcessorPipelineStep only has to do the “main operation” on the string and nothing else.
-- MosaicDataSource
-  - Name: „MosaicDataSource“
-  - Category: „Data Sources“
-  - Implements -> PipelineStep
-  - Description: The MosaicDataSource is the PipelineStep which is used as the main source of data given the fact that we want to build upon the previous already created MOSAIC-Tool. We use this step to retrieve an initial result set of full texts from a MOSAIC instance.
-  - Parameters:
-    - output_column: The column in the PipelineIntermediate where the full texts of the retrieved documents are stored.
-    - url: The URL of the MOSAIC instance to use. Must be accessible from the public web.
-    - limit: The amount of initial results that should be retrieved from MOSAIC.
-    - search_index: Limit the search to a specific index.
-- DocumentSummarizer
+
+## Categories
+
+| Name | Description  |
+|--|--|
+| Data Sources | This category encompasses all pipeline steps, which bring new data into the RAG system. The steps itself gather data from external services (e.g. MOSAIC, ChromaDB, etc.), bring them into a unified format and save them in the [PipelineIntermediate](#pipelineintermediate). |
+| Summarizers | Pipeline steps of this category are used to summarize the retrieved and/or processed text either on an individual level or to get an overall summarization of all returned results.   |
+| Pre-Processing | This category hosts a number of basic NLP pre-processing steps which can be used to enhance/change the retrieved full texts from the sources.  |
+| Rerankers | Rerankers are used to alter/enhance the ranking of the retrieved results. These rerankers can be based on simple ISR metrics (eg. Cosine, BM25, etc.) or also encompass LLM-Rag features. |
+| Metadata Analysis | This category holds pipeline steps which are used for analysis purposes on each individual row.|
+
+## Pipeline steps
+
+### PipelineStep
+
+This is the abstract base class for all pipeline steps. It must either be directly implemented by each step or be present somewhere in the class’s inheritance hierarchy (e.g., via [`RowProcessorPipelineStep`](#rowprocessorpipelinestep).
+
+It defines the following abstract methods:
+
+- `def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler) -> PipelineIntermediate:`
+
+- `def get_info() -> dict:`
+
+- `def get_name() -> str:`
+
+The `transform` method is the core function of each pipeline step. It applies the specific modifications to the [`PipelineIntermediate`](#pipelineintermediate) object for that step.
+The two static methods, `get_info()` and `get_name()`, provide metadata about the step. They are primarily used to supply descriptive information to the frontend.
+
+### RowProcessorPipelineStep
+
+`RowProcessorPipelineStep` implements the [`PipelineStep`](#pipelinestep) interface but serves as a specialized base class meant to be extended by other pipeline steps. It overrides the `transform` method from [`PipelineStep`](#pipelinestep)  and introduces a new abstract method that must be implemented by any subclass deriving from it:
+
+- `def transform_row(self, data, handler: PipelineStepHandler) -> (any, Optional[str]):`
+
+`RowProcessorPipelineStep` provides a framework for iterating over the `PipelineIntermediate` object row by row, applying a transformation—defined in the `transform_row` method—to each string in a selected column.
+It handles all responsibilities related to caching, updating the [`PipelineIntermediate`](#pipelineintermediate), and tracking progress. As a result, subclasses implementing `RowProcessorPipelineStep` only need to define the core transformation logic in `transform_row`, without worrying about the surrounding infrastructure.
+
+### MosaicDataSource
+
+-   **Category:** [Data Sources](#categories)
+    
+-   **Implements:** [`PipelineStep`](#pipelinestep)
+    
+
+#### Description
+
+The `MosaicDataSource` is a [`PipelineStep`](#pipelinestep) used as the primary source of data, designed to integrate with the existing [MOSAIC tool](https://opencode.it4i.eu/openwebsearcheu-public/mosaic). It retrieves an initial result set of full-text documents from a specified MOSAIC instance. This step is typically used at the beginning of the pipeline.
+
+#### Parameters
+
+-   **`output_column`**  
+    The name of the column in the `PipelineIntermediate` where the full texts of the retrieved documents will be stored.
+    
+-   **`url`**  
+    The URL of the MOSAIC instance to query. This must be publicly accessible via the web.
+    
+-   **`limit`**  
+    The number of initial results to retrieve from the MOSAIC instance. If the limit is higher than the number of documents in the respective index, all available documents will be returned. 
+    
+-   **`search_index`**  
+    (Optional) Restrict the search to a specific index within the MOSAIC instance.
+
+### DocumentSummarizer
+
   - Name: „LLM Summarizer“
   - Category: „Summarizers“
   - Implements -> PipelineStep

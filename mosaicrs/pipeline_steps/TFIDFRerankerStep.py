@@ -45,7 +45,8 @@ class TFIDFRerankerStep(PipelineStep):
                 data.documents[reranking_score_name] = self.compute_manhatten_distance_scores(doc_tfidf, query_tfidf)
 
         reranking_rank_name = "_reranking_rank_" + reranking_id + "_"
-        data.documents[reranking_rank_name] = data.documents[reranking_score_name].rank(method="dense", ascending=(False if self.similarity_metric in [SimilarityMetrics.COSINE, SimilarityMetrics.BM25] else True)).astype(int)
+        data.documents[reranking_rank_name] = data.documents[reranking_score_name].rank(method="first", ascending=(False if self.similarity_metric in [SimilarityMetrics.COSINE, SimilarityMetrics.BM25] else True)).astype(int)
+        print(data.documents)
         data.set_rank_column(reranking_rank_name)
         data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
 
