@@ -245,6 +245,9 @@ It defines the following abstract methods:
 The `transform` method is the core function of each pipeline step. It applies the specific modifications to the [`PipelineIntermediate`](#pipelineintermediate) object for that step.
 The two static methods, `get_info()` and `get_name()`, provide metadata about the step. They are primarily used to supply descriptive information to the frontend.
 
+----------
+
+
 ### RowProcessorPipelineStep
 
 `RowProcessorPipelineStep` implements the [`PipelineStep`](#pipelinestep) interface but serves as a specialized base class meant to be extended by other pipeline steps. It overrides the `transform` method from [`PipelineStep`](#pipelinestep)  and introduces a new abstract method that must be implemented by any subclass deriving from it:
@@ -254,10 +257,12 @@ The two static methods, `get_info()` and `get_name()`, provide metadata about th
 `RowProcessorPipelineStep` provides a framework for iterating over the `PipelineIntermediate` object row by row, applying a transformation—defined in the `transform_row` method—to each string in a selected column.
 It handles all responsibilities related to caching, updating the [`PipelineIntermediate`](#pipelineintermediate), and tracking progress. As a result, subclasses implementing `RowProcessorPipelineStep` only need to define the core transformation logic in `transform_row`, without worrying about the surrounding infrastructure.
 
-### MosaicDataSource
+----------
 
+
+### MosaicDataSource
+- **UI-Name:** `MosaicDataSource`
 -   **Category:** [Data Sources](#categories)
-    
 -   **Implements:** [`PipelineStep`](#pipelinestep)
     
 
@@ -279,110 +284,310 @@ The `MosaicDataSource` is a [`PipelineStep`](#pipelinestep) used as the primary 
 -   **`search_index`**  
     (Optional) Restrict the search to a specific index within the MOSAIC instance.
 
-### DocumentSummarizer
+----------
 
-  - Name: „LLM Summarizer“
-  - Category: „Summarizers“
-  - Implements -> PipelineStep
-  - Description: Summarize each document in the result set using a LLM. Specify the input column (which data to summarize) and output column (where to save the summarization in the PipelineIntermediate) of the PipelineIntermediate. This step is used to create summarizations of given input strings.
-  - Parameters:
-    - model: LLM instance to use for summarization. In the current implementation it can be any T5 transformer or a usage of the DeepSeek API.
-    - input_column: Column name of the PipelineIntermediate, which contains the data for summarization.
-    - output_column: The column in the PipelineIntermediate where the summarized texts should be stored.
-    - summarize_prompt: Additional instruction which you can give the LLM to summarize your text (system prompt).
-- ResultSummarizerStep
-  - Name: „Query Summarizer“
-  - Category: „Summarizers“
-  - Implements -> PipelineStep
-  - Description: Summarizes the texts of all remaining documents in the PipelineIntermediate into one final summary given the search query defined in the beginning.
-  - Parameters:
-    - model: LLM instance to use for summarization. In the current implementation it can be any T5 transformer or a usage of the DeepSeek API.
-    - input_column: Column name of the PipelineIntermediate, which contains the data for summarization.
-    - output_column: The column name in the metadata data-frame in the PipelineIntermediate, where the summarization should be stored.
-- ContentExtractorStep
-  - Name: „Content Extractor“
-  - Category: „Pre-Processing“
-  - Implements -> RowProcessorPipelineStep
-  - Description: This step is used to extract the main content of a full text and remove any non-important parts like menu-items, unnecessary headers or filler notes. This is based on a moving average approach on the full-text sentence length. This Step will become useless once we get the cleaned indexes with either the useful texts or the main-content with the html-tags so that we can extract the useful information ourselves.
-  - Parameters:
-    - input_column: Column name in the PipelineIntermediate, which contains the text data for the cleaning.
-    - output_column: The column name in the PipelineIntermediate, where the extracted text should be stored.
-- StopwordRemovalStep
-  - Name: „Stopword Remover“
-  - Category: „Pre-Processing“
-  - Implements -> PipelineStep
-  - Description: Removes stop words from a given text based on the respective language (given by the language column). Currently supported languages English, German, French, Italian. The stop words are retrieved from the nltk corpus.
-  - Parameters:
-    - input_column: The name of the column in the PipelineIntermediate on which this pre-processing step should be performed.
-    - output_column: The name of the column in the PipelineIntermediate where the resulting cleaned texts should be stored.
-    - language_column: The name of the column in the PipelineIntermediate which contains the language code for each of the respective retrieved documents.
-- PunctuationRemovalStep
-  - Name: “Punctuation Remover”
-  - Category: “Pre-Processing”
-  - Implements -> PipelineStep
-  - Description: Removes punctuation from a given text column. Punctuation will be removed based on the string.punctuation list of python.
-  - Parameters:
-    - input_column: The name of the column in the PipelineIntermediate on which this pre-processing step should be performed.
-    - output_column: The name of the column in the PipelineIntermediate where the resulting cleaned texts should be stored.
-    - process_query: Boolean query (Yes/No), if the punctuation should also be removed from the query
-- TextStemmerStep
-  - Name: “Text Stemmer”
-  - Category: “Pre-Processing”
-  - Implements -> PipelineStep
-  - Description: Text-based pre-processing of a given column of text. Stemming will be performed on the selected column, creating a new text consisting of the word stems of the original text. For Stemmers we selected the SnowballStemmer from the nltk library. We create stemmers for all the supported languages, which are used in the retrieved documents. If the language is not supported, we do not change anything in the respective document.
-  - Parameters:
-    - input_column: The name of the column in the PipelineIntermediate on which this pre-processing step should be performed.
-    - output_column: The name of the column in the PipelineIntermediate where the resulting cleaned texts should be stored.
-    - language_column: The name of the column in the PipelineIntermediate which contains the language code for each of the respective retrieved documents.
-- TextLemmatizationStep (does not work currently)
-  - Name: “Text Lemmatizer”
-  - Category: “Pre-Processing”
-  - Implements -> PipelineStep
-  - Description: Text-based pre-processing of a given column of text. Lemmatization will be performed on the selected column, creating a new text consisting of the base form of each word of the original text. For the Lemmatizer we used the WordNetLemmatizer from nltk for all English texts and for all other texts we load respective spacy-lemmatization models. If the language is not supported, we do not change anything in the respective document.
-  - Parameters:
-    - input_column: The name of the column in the PipelineIntermediate on which this pre-processing step should be performed.
-    - output_column: The name of the column in the PipelineIntermediate where the resulting cleaned texts should be stored.
-    - language_column: The name of the column in the PipelineIntermediate which contains the language code for each of the respective retrieved documents.
-- ReductionStep
-  - Name: “Reduction Step”
-  - Category: “Filtering”
-  - Implements -> Pipelinesteps
-  - Description: Reduces the number of entries in the PipelineIntermiediate to only the top-k entries based on a selected ranking column.
-  - Parameters:
-    - ranking_column: The column name of the column in the PipelineIntermediate, which should be used for the reduction to the top-k entries.
-    - k: Number of entries the PipelineIntermediate should be reduced to.
-    - reset_index: Boolean question (Yes/No). Should all ranking indexes be reseted to the new number of entries.
-- WordCounterStep
-  - Name: “Word Counter”
-  - Category: “Metadata Analysis”
-  - Implements -> RowProcessorPipelineStep
-  - Descrption: Returns the number of words for each document for a selected column in the PipelineIntermediate.
-  - Parameters:
-    - input_column: The column name in the PipelineIntermediate, on which the word count should be calculated for each document.
-    - output_column: The column name in the PipelineIntermediate, where the word could for each doucment should be stored.
-- BasicSentimentAnalysisStep
-  - Name: „Basic Sentiment Analyser“
-  - Category: „Metadata Analysis“
-  - Implements -> RowProcessorPipelineStep
-  - Description: Uses the model „bhadresh-savani/distilbert-base-uncased-emotion“ from hugging face as a pre-trained sentiment analysis model and returns one of six emotions (sadness, joy, love, anger, fear, surprise). This is only a base version which should show that a sentiment analysis is possible. Currently it only works on English texts and up until a maximum word token count of 512.
-  - Parameters:
-    - input_column: The column name in the PipelineIntermediate, on which the sentiment analysis should be done.
-    - output_column: The column name in the PipelineIntermediate, where the retrieved sentiment (emotion) of each document should be stored.
-- EmbeddingRerankerStep
-  - Name: „Embedding-Reranker“
-  - Category: “Rerankers”
-  - Implements -> PipelineStep
-  - Description: performs reranking based in generated dense embeddings using Cosine-Similarity.
-  - Parameters:
-    - input_column: The column name in the PipelineIntermediate, on which we generate the document embeddings.
-    - query: An additional query, different from the main query, used for reranking. If not provided, the standard query form the beginning will be used.
-    - model: The embedding model used to generate the embeddings. We provide the following models: Snowflake/snowflake-arctic-embed-s,Snowflake/snowflake-arctic-embed-m
-- TFIDFRerankerStep
-  - Name: „TF-IDF-Reranker“
-  - Category: “Rerankers”
-  - Implements -> PipelineStep
-  - Description: Perform reranking based on TF-IDF vectors and a selected similarity metric.
-  - Parameters:
-    - input_column: The column name in the PipelineIntermediate, on which we generate the TF-IDF-scores.
-    - query: An additional query, different from the main query, used for reranking. If not provided, the standard query form the beginning will be used.
-    - similarity_metric: The similarity metric used to compute the reranking on the TF-IDF-scores of the query and document. We provide the following metrics: Cosine-similarity, Euclidean distance, Manhatten distance, BM25.
+
+### DocumentSummarizerStep
+- **UI-Name:** `LLM Summarizer`
+-   **Category:** [Summarizers](#categories)
+-   **Implements:** [`PipelineStep`](#pipelinestep)
+    
+
+#### Description
+
+Summarizes each document in the result set using a large language model (LLM). This step allows you to specify which column to summarize (`input_column`) and where to store the results (`output_column`) within the [`PipelineIntermediate`](#pipelineintermediate).
+
+#### Parameters
+
+-   **`model`**  
+    The LLM instance used for summarization. the following models are currently supported: `DeepSeekv3`,`gemma2`, `qwen2.5`, `llama3.1`.
+    
+-   **`input_column`**  
+    Column name in the `PipelineIntermediate` that contains the input text for summarization.
+    
+-   **`output_column`**  
+    The column where the summarized text will be stored.
+    
+-   **`summarize_prompt`**  
+    Optional instruction (system prompt) provided to the LLM to guide summarization.
+    
+
+----------
+
+### `Query Summarizer`
+
+-   **Category:** Summarizers
+    
+-   **Implements:** `PipelineStep`
+    
+
+#### Description
+
+Generates a final summary that condenses the content of all remaining documents in the `PipelineIntermediate`, based on the original search query.
+
+#### Parameters
+
+-   **`model`**  
+    The LLM instance used for summarization (T5 transformers or DeepSeek API supported).
+    
+-   **`input_column`**  
+    Column in the `PipelineIntermediate` containing the text to summarize.
+    
+-   **`output_column`**  
+    Column name in the metadata DataFrame where the final summary is stored.
+    
+
+----------
+
+### `Content Extractor`
+
+-   **Category:** Pre-Processing
+    
+-   **Implements:** `RowProcessorPipelineStep`
+    
+
+#### Description
+
+Extracts the main content from full-text documents, removing non-essential elements like navigation menus or filler content. Uses a moving average based on sentence length. This step will eventually be deprecated once cleaner indexes are available.
+
+#### Parameters
+
+-   **`input_column`**  
+    Column containing the raw text for processing.
+    
+-   **`output_column`**  
+    Column where the cleaned and extracted content will be saved.
+    
+
+----------
+
+### `Stopword Remover`
+
+-   **Category:** Pre-Processing
+    
+-   **Implements:** `PipelineStep`
+    
+
+#### Description
+
+Removes stop words from the input text based on the document's language (supports English, German, French, and Italian). Stop words are sourced from the NLTK corpus.
+
+#### Parameters
+
+-   **`input_column`**  
+    The column to clean in the `PipelineIntermediate`.
+    
+-   **`output_column`**  
+    Where the stopword-cleaned text will be stored.
+    
+-   **`language_column`**  
+    Specifies the language of each document.
+    
+
+----------
+
+### `Punctuation Remover`
+
+-   **Category:** Pre-Processing
+    
+-   **Implements:** `PipelineStep`
+    
+
+#### Description
+
+Removes punctuation from a given text column using Python’s `string.punctuation` list.
+
+#### Parameters
+
+-   **`input_column`**  
+    Text column to clean.
+    
+-   **`output_column`**  
+    Destination column for punctuation-free text.
+    
+-   **`process_query`**  
+    Boolean (`Yes`/`No`): Whether to also remove punctuation from the search query.
+    
+
+----------
+
+### `Text Stemmer`
+
+-   **Category:** Pre-Processing
+    
+-   **Implements:** `PipelineStep`
+    
+
+#### Description
+
+Applies stemming to a text column using the `SnowballStemmer` from NLTK. Language-specific stemmers are used where supported; unsupported languages are left unchanged.
+
+#### Parameters
+
+-   **`input_column`**  
+    Column with the original text.
+    
+-   **`output_column`**  
+    Column where the stemmed text will be saved.
+    
+-   **`language_column`**  
+    Contains the language code for each document.
+    
+
+----------
+
+### `Text Lemmatizer` _(Not currently functional)_
+
+-   **Category:** Pre-Processing
+    
+-   **Implements:** `PipelineStep`
+    
+
+#### Description
+
+Performs lemmatization on the input text using `WordNetLemmatizer` for English or spaCy models for other supported languages. Unsupported languages remain unchanged.
+
+#### Parameters
+
+-   **`input_column`**  
+    The column containing the original text.
+    
+-   **`output_column`**  
+    The column for the lemmatized result.
+    
+-   **`language_column`**  
+    Column with the language codes.
+    
+
+----------
+
+### `Reduction Step`
+
+-   **Category:** Filtering
+    
+-   **Implements:** `PipelineStep`
+    
+
+#### Description
+
+Reduces the number of documents in the `PipelineIntermediate` to the top `k` based on a ranking column.
+
+#### Parameters
+
+-   **`ranking_column`**  
+    Column used to determine top-ranking entries.
+    
+-   **`k`**  
+    Number of entries to keep.
+    
+-   **`reset_index`**  
+    Boolean (`Yes`/`No`): Whether to reset ranks to match the reduced set.
+    
+
+----------
+
+### `Word Counter`
+
+-   **Category:** Metadata Analysis
+    
+-   **Implements:** `RowProcessorPipelineStep`
+    
+
+#### Description
+
+Calculates the number of words in each document for a specified column in the `PipelineIntermediate`.
+
+#### Parameters
+
+-   **`input_column`**  
+    Column to analyze for word count.
+    
+-   **`output_column`**  
+    Column to store the resulting word counts.
+    
+
+----------
+
+### `Basic Sentiment Analyser`
+
+-   **Category:** Metadata Analysis
+    
+-   **Implements:** `RowProcessorPipelineStep`
+    
+
+#### Description
+
+Uses the Hugging Face model `bhadresh-savani/distilbert-base-uncased-emotion` to return one of six emotions: _sadness, joy, love, anger, fear, surprise_. Works only on English texts and up to 512 tokens.
+
+#### Parameters
+
+-   **`input_column`**  
+    Column containing the input text.
+    
+-   **`output_column`**  
+    Column to store the predicted sentiment for each document.
+    
+
+----------
+
+### `Embedding-Reranker`
+
+-   **Category:** Rerankers
+    
+-   **Implements:** `PipelineStep`
+    
+
+#### Description
+
+Reranks documents using cosine similarity of dense embeddings generated from a model.
+
+#### Parameters
+
+-   **`input_column`**  
+    Column to generate embeddings from.
+    
+-   **`query`**  
+    Optional: custom reranking query (defaults to the original query if not provided).
+    
+-   **`model`**  
+    Embedding model used. Supported models:
+    
+    -   `Snowflake/snowflake-arctic-embed-s`
+        
+    -   `Snowflake/snowflake-arctic-embed-m`
+        
+
+----------
+
+### `TF-IDF-Reranker`
+
+-   **Category:** Rerankers
+    
+-   **Implements:** `PipelineStep`
+    
+
+#### Description
+
+Reranks documents using TF-IDF vectors and a configurable similarity metric.
+
+#### Parameters
+
+-   **`input_column`**  
+    Column to use for TF-IDF vectorization.
+    
+-   **`query`**  
+    Optional: a different reranking query than the original.
+    
+-   **`similarity_metric`**  
+    Metric for computing similarity. Supported values:
+    
+    -   `cosine-similarity`
+        
+    -   `euclidean distance`
+        
+    -   `manhattan distance`
+        
+    -   `BM25`
+        
+
+----------
