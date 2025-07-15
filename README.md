@@ -209,6 +209,7 @@ name of the step.
 
 `documentation still in progress`
 
+
 ## PipelineIntermediate
 The PipelineIntermediate object serves as the primary means of communication between pipeline steps. Each step in the pipeline receives a PipelineIntermediate object as input and returns the altered one as output. This object consists of three main components:
 | Name | Description |
@@ -227,6 +228,7 @@ The PipelineIntermediate object serves as the primary means of communication bet
 | Pre-Processing | This category hosts a number of basic NLP pre-processing steps which can be used to enhance/change the retrieved full texts from the sources.  |
 | Rerankers | Rerankers are used to alter/enhance the ranking of the retrieved results. These rerankers can be based on simple ISR metrics (eg. Cosine, BM25, etc.) or also encompass LLM-Rag features. |
 | Metadata Analysis | This category holds pipeline steps which are used for analysis purposes on each individual row.|
+
 
 ## Pipeline steps
 
@@ -525,6 +527,34 @@ Uses the Hugging Face model `bhadresh-savani/distilbert-base-uncased-emotion` to
 
 ----------
 
+### RelevanceMarkingStep
+
+-   **UI-Name:** `Marking Relevance`
+-   **Category:** [Metadata Analysis](#categories)
+-   **Implements:** [`PipelineStep`](#pipelinestep)
+    
+
+#### Description
+
+The step highlights the most important text passages in a given text for a specific query. It does this using a LLM, which finds the most relevant text passages for the query and marks them with two asterisks on each side. The `model` parameter determines, which LLM is used for this step. Currently this step supports gemma2, qwen2.5, and llama3.1. The input text, in which the highlights should be found and marked are in the `input_column` column of the [`PipelineIntermediate`](#pipelineintermediate). The highlighted text is saved in the `output_column` of the [`PipelineIntermediate`](#pipelineintermediate). There is also the possibility to enter an optional new `query` which overwrites the overall query for this exact step.
+
+#### Parameters
+
+-   **`model`**  
+    LLM which is used for detecting the most relevant passages in the input text. Currently gemma2, qwen2.5, and llama3.1 are supported. 
+
+-   **`input_column`**  
+    Column of the [`PipelineIntermediate`](#pipelineintermediate) containing the input text.
+    
+-   **`output_column`**  
+    Column to store the highlighted text in the [`PipelineIntermediate`](#pipelineintermediate).
+
+-   **`query`**  
+    Optional: An additional query, different from the main query, used for the highlighting task.
+    
+
+----------
+
 ### EmbeddingRerankerStep
 
 -   **UI-Name:** `EmbeddingReranker`
@@ -589,10 +619,120 @@ Reranks documents using TF-IDF vectors and a configurable similarity metric. Cur
 
 ### TournamentStyleLLMRerankerStep
 
-### RelevanceMarkingStep
+-   **UI-Name:** `Tournament-Style Reranker Step`
+-   **Category:** [Rerankers](#categories)
+-   **Implements:** [`PipelineStep`](#pipelinestep)
+    
 
-### MeiliDataSource
+#### Description
+
+A LLM-Reranker approach, which does not rerank the whole document set, but can be seen as an ranking-enhancement, as it uses the previously most current ranking and then builds a single elimination tournament tree out of it where the previously 1. document goes against the 2., the winner goes on against the winner from 3. against 4. and so on. This does mean, that a document, once it is eliminated, cannot move any higher in the ranking put it has the advantage, that after the reranking process, the top documents are for sure better then the once behind it. It uses a `model` to determine, which document is more suitable regarding a specific query. This can be either the overall query or a new `query` which is only active for this step. The model gets the texts given in the [`PipelineIntermediate`](#pipelineintermediate) in the column with the name given in `input_column`.
+
+#### Parameters
+
+-   **`model`**  
+    LLM model instance to use for the reranking task. Currently gemma2, qwen2.5, and llama3.1 are supported. 
+
+-   **`input_column`**  
+    Column of the [`PipelineIntermediate`](#pipelineintermediate) containing the input texts.
+
+-   **`query`**  
+    Optional: An additional query, different from the main query, used for reranking.
+
+
+----------
 
 ### GroupStyleLLMRerankerStep
 
-### ChromaDataSource
+-   **UI-Name:** `Group-Style Reranker Step`
+-   **Category:** [Rerankers](#categories)
+-   **Implements:** [`PipelineStep`](#pipelinestep)
+    
+
+#### Description
+
+A LLM-Reranker approach, where we compare all possible combinations of documents for a specific `window_size` and reward the one document in each set, which is most suitable for a given query, with a point. After evaluating all combinations we rank the documents according to these points. A `window_size` of 2, would result in every document being compared to every other document, which in turn is a full LLM-Reranker. Higher `window_sizes` result in less LLM-comparisons and therefore less computation time, but they are then also less accurate. It uses a `model` to determine, which document is more suitable regarding a specific query. This can be either the overall query or a new `query` which is only active for this step. The model gets the texts given in the [`PipelineIntermediate`](#pipelineintermediate) in the column with the name given in `input_column`.
+
+#### Parameters
+
+-   **`model`**  
+    LLM model instance to use for the reranking task. Currently gemma2, qwen2.5, and llama3.1 are supported. 
+
+-   **`input_column`**  
+    Column of the [`PipelineIntermediate`](#pipelineintermediate) containing the input texts.
+
+-   **`window-size`**
+    A positive integer > 1, indicating the size of the comparison window. 
+
+-   **`query`**  
+    Optional: An additional query, different from the main query, used for reranking.
+
+
+----------
+
+## Tutorial: How to implement your own Pipeline-Step
+
+In this short tutorial we want to show you, how you can implement your own Pipeline-Step, what the structure of a pipeline step is, and what you need to consider. For that we have choosen to re-implement the [`WordCounter`](#wordcounterstep) in two ways, to show you both the [`PipelineStep`](#pipelinestep)-Variation as well as the [`RowProcessorPipelineStep`](#rowprocessorpipelinestep)-Variation of PipelineSteps. But first lets explain the difference between those two pipeline step variations: A [`PipelineStep`](#pipelinestep) is the abstract base class of all other pipeline steps, it defines three methods, that need to be implemented by every other pipeline step: 
+
+- `def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler) -> PipelineIntermediate:`
+
+- `def get_info() -> dict:`
+
+- `def get_name() -> str:`
+
+The `transform` method is the core function of each pipeline step. It applies the specific modifications to the [`PipelineIntermediate`](#pipelineintermediate) object for that step.
+The two static methods, `get_info()` and `get_name()`, provide metadata about the step. They are primarily used to supply descriptive information to the frontend. 
+The [`RowProcessorPipelineStep`](#rowprocessorpipelinestep) is a pileline step that implements the abstract base class [`PipelineStep`](#pipelinestep), but itself is also a abstract class itself. So in short, [`RowProcessorPipelineStep`](#rowprocessorpipelinestep) is a enhanced base class which implements the [`PipelineStep`](#pipelinestep) class and is meant to be extended by other pipeline steps. It overrides the `transform` method from [`PipelineStep`](#pipelinestep)  and introduces a new abstract method that must be implemented by any subclass deriving from it:
+
+- `def transform_row(self, data, handler: PipelineStepHandler) -> (any, Optional[str]):`
+
+`RowProcessorPipelineStep` provides a framework for iterating over the `PipelineIntermediate` object row by row, applying a transformation—defined in the `transform_row` method—to each string in a selected column.
+It handles all responsibilities related to caching, updating the [`PipelineIntermediate`](#pipelineintermediate), and tracking progress. As a result, subclasses implementing `RowProcessorPipelineStep` only need to define the core transformation logic in `transform_row`, without worrying about the surrounding infrastructure. All pipeline steps, implementing [`RowProcessorPipelineStep`](#rowprocessorpipelinestep) still need to implement `def get_info() -> dict:` and `def get_name() -> str:`. 
+The default implementation of the [`WordCounter`](#wordcounterstep)-Step is done via a [`RowProcessorPipelineStep`](#rowprocessorpipelinestep), so we will first show how this is done, and then show how it can be done via a standard [`PipelineStep`](#pipelinestep). 
+
+### Variation 1: [`RowProcessorPipelineStep`](#rowprocessorpipelinestep)
+
+```from typing import Optional
+from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
+from mosaicrs.pipeline_steps.RowProcessorPipelineStep import RowProcessorPipelineStep
+
+
+class WordCounterStep(RowProcessorPipelineStep):
+    def __init__(self, input_column: str, output_column: str):
+        super().__init__(input_column, output_column)
+
+    def transform_row(self, data, handler) -> (str, Optional[str]):
+        return str(len(str(data).split(' '))), 'chip'
+
+    def get_cache_fingerprint(self) -> str:
+        return ''
+
+    @staticmethod
+    def get_info() -> dict:
+        return {
+            "name": WordCounterStep.get_name(),
+            "category": "Metadata Analysis",
+            "description": "Count the number words, separated by spaces, in the text.",
+            "parameters": {
+                'input_column': {
+                    'title': 'Input column name',
+                    'description': '',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'supported-values': ['full-text'],
+                    'default': 'full-text',
+                },
+                'output_column': {
+                    'title': 'Output column name',
+                    'description': '',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'supported-values': ['wordCount', 'word_count'],
+                    'default': 'wordCount',
+                },
+            }
+        }
+
+    @staticmethod
+    def get_name() -> str:
+        return 'Word counter'```
