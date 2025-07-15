@@ -690,9 +690,60 @@ The [`RowProcessorPipelineStep`](#rowprocessorpipelinestep) is a pileline step t
 It handles all responsibilities related to caching, updating the [`PipelineIntermediate`](#pipelineintermediate), and tracking progress. As a result, subclasses implementing `RowProcessorPipelineStep` only need to define the core transformation logic in `transform_row`, without worrying about the surrounding infrastructure. All pipeline steps, implementing [`RowProcessorPipelineStep`](#rowprocessorpipelinestep) still need to implement `def get_info() -> dict:` and `def get_name() -> str:`. 
 The default implementation of the [`WordCounter`](#wordcounterstep)-Step is done via a [`RowProcessorPipelineStep`](#rowprocessorpipelinestep), so we will first show how this is done, and then show how it can be done via a standard [`PipelineStep`](#pipelinestep). 
 
+But before we start with anything lets first define the requirements of the pipeline step we want to implement in this tutorial. We want to implement a pipeline step, that given a certain column of the [`PipelineIntermediate`](#pipelineintermediate), calculate the amount of words in each of the rows and save it in another column. The word count per document should then also be visible as a chip in the UI.
+
 ### Variation 1: [`RowProcessorPipelineStep`](#rowprocessorpipelinestep)
 
-```from typing import Optional
+Before implementing the [`WordCounter`](#wordcounterstep)-Step, we take a closer look at the implementation at the `transform()`-function in the [`RowProcessorPipelineStep`](#rowprocessorpipelinestep). 
+
+```python
+def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler) -> PipelineIntermediate:
+        inputs = [entry if entry is not None else "" for entry in data.documents[self.input_column].to_list()]
+        outputs = []
+        column_type = None
+
+        handler.update_progress(0, len(inputs))
+
+        for input in tqdm(inputs):
+            if handler.should_cancel:
+                break
+
+            input_hash = hashlib.sha1((self.get_cache_fingerprint() + str(input)).encode()).hexdigest()
+            output = handler.get_cache(input_hash)
+
+            if output is None:
+                output, returned_column_type = self.transform_row(input, handler)
+
+                handler.put_cache(input_hash, output)
+                handler.put_cache(input_hash + 'column_type', returned_column_type)
+
+                if returned_column_type is not column_type:
+                    handler.log(self.get_name() + ": column type: " + returned_column_type)
+
+                if returned_column_type is not None:
+                    column_type = returned_column_type
+
+            else:
+                column_type = handler.get_cache(input_hash + 'column_type')
+
+            outputs.append(output)
+            handler.increment_progress()
+
+        data.documents[self.output_column] = outputs
+        data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
+
+
+        if column_type is not None:
+            data.set_column_type(self.output_column, column_type)
+
+        return data
+```
+
+As already explained, we are using the [`RowProcessorPipelineStep`](#rowprocessorpipelinestep), when we want to implement a step, that uses data from one row of the [`PipelineIntermediate`](#pipelineintermediate). This implementation of the `transform()`-function takes over anything related to caching, updating the [`PipelineIntermediate`](#pipelineintermediate), and tracking progress. It iterates over the data from the `input-column`, checks the cache, calls the `transform_row()` function for the core "work" of the pipeline step, updates the progress bar, and in the end saves the data, updates the history, and if needed, updates the metadata dataframe in the [`PipelineIntermediate`](#pipelineintermediate). 
+Now that we have this knowledge, lets take a look at the implementation of the [`WordCounter`](#wordcounterstep)-Step:
+
+```python
+from typing import Optional
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from mosaicrs.pipeline_steps.RowProcessorPipelineStep import RowProcessorPipelineStep
 
@@ -735,4 +786,93 @@ class WordCounterStep(RowProcessorPipelineStep):
 
     @staticmethod
     def get_name() -> str:
-        return 'Word counter'```
+        return 'Word counter'
+```
+
+The `class WordCounterStep(RowProcessorPipelineStep)` inherits from the abstract base class `RowProcessorPipelineStep`. As a subclass, it must implement the following abstract methods:
+
+- `def transform_row(self, data, handler: PipelineStepHandler) -> (Any, Optional[str]):`
+- `def get_info() -> dict:`
+- `def get_name() -> str:`
+- `def get_cache_fingerprint(self) -> str:`
+
+
+## Method Overview
+
+### `get_name()`
+Returns the name of the pipeline step, which is used for display in the UI.
+
+### `get_info()`
+Returns a dictionary with metadata about the pipeline step. This includes:
+
+- `name`: Obtained from `get_name()`
+- `category`: The pipeline step category (see [Categories](#categories))
+- `description`: A short UI description shown in the step selector
+- `parameters`: A dictionary of configurable parameters for the step
+
+Each `RowProcessorPipelineStep` must define **at least two parameters**:
+
+- `input_column`: The name of the column in the [`PipelineIntermediate`](#pipelineintermediate) that contains the input data.
+- `output_column`: The name of the column in the `PipelineIntermediate` where the output will be stored.
+
+
+## Parameter Configuration
+
+Parameters are presented in the UI, where users can view and modify them. Each parameter can define the following fields:
+
+- `title`: A human-readable name for the parameter
+- `description`: A short description of the parameter's purpose
+- `type`: Determines the UI control (e.g., dropdown, text field)
+- `enforce-limit`: Boolean flag that controls whether user input must match `supported-values`
+- `supported-values`: A list of allowed values (used when `enforce-limit=True`)
+- `default`: The default value shown in the UI (should be in `supported-values`)
+
+If `enforce-limit` is `True`, users can only select from `supported-values`. If `False`, users can also enter custom values.
+
+
+## Example: `WordCounterStep` Implementation
+
+Since `WordCounterStep` requires no additional parameters, its constructor simply passes the required parameters to the base class:
+
+```python
+def __init__(self, input_column: str, output_column: str):
+    super().__init__(input_column, output_column)
+```
+
+### `transform_row()` Implementation
+
+```python
+def transform_row(self, data, handler) -> (str, Optional[str]):
+    return str(len(str(data).split(' '))), 'chip'
+```
+
+- `data` is a single row's value from the `input_column`.
+- The function splits the string into words using whitespace and counts the number of words.
+- The count is returned as a string, along with the keyword `'chip'`.
+
+The second return value (`'chip'`) is a display hint used by MosaicRAG's UI to render the result as a *chip*. This metadata is captured in the `transform_row()` output and used to update the internal metadata dataframe.
+
+
+## Display Keywords
+
+The second return value in `transform_row()` helps the UI determine how to present the output data. The following keywords are supported:
+
+- **`chip`** – Display output as labeled chips in the UI.
+- **`text`** – Use the output as the main text shown in result previews; selectable via the text field dropdown.
+- **`rank`** – Use the output for document ranking; selectable via the ranking dropdown in the UI.
+
+
+## Choosing the Right Base Class
+
+If your pipeline step operates on **individual rows**, use the `RowProcessorPipelineStep` base class as shown.
+
+However, if your step needs to:
+
+- Compare **multiple rows**
+- Access **context across rows**
+- Process **entire datasets at once**
+
+Then you should implement your step using the [`PipelineStep`](#pipelinestep) base class instead.
+
+
+### Variation 2: [`PipelineStep`](#pipelinestep)
