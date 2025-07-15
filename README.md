@@ -799,6 +799,13 @@ The `class WordCounterStep(RowProcessorPipelineStep)` inherits from the abstract
 
 ## Method Overview
 
+Since `WordCounterStep` requires no additional parameters, its constructor simply passes the required parameters to the base class:
+
+```python
+def __init__(self, input_column: str, output_column: str):
+    super().__init__(input_column, output_column)
+```
+
 ### `get_name()`
 Returns the name of the pipeline step, which is used for display in the UI.
 
@@ -816,7 +823,7 @@ Each `RowProcessorPipelineStep` must define **at least two parameters**:
 - `output_column`: The name of the column in the `PipelineIntermediate` where the output will be stored.
 
 
-## Parameter Configuration
+#### Parameter Configuration
 
 Parameters are presented in the UI, where users can view and modify them. Each parameter can define the following fields:
 
@@ -828,16 +835,6 @@ Parameters are presented in the UI, where users can view and modify them. Each p
 - `default`: The default value shown in the UI (should be in `supported-values`)
 
 If `enforce-limit` is `True`, users can only select from `supported-values`. If `False`, users can also enter custom values.
-
-
-## Example: `WordCounterStep` Implementation
-
-Since `WordCounterStep` requires no additional parameters, its constructor simply passes the required parameters to the base class:
-
-```python
-def __init__(self, input_column: str, output_column: str):
-    super().__init__(input_column, output_column)
-```
 
 ### `transform_row()` Implementation
 
