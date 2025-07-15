@@ -58,7 +58,7 @@ class ResultsSummarizerStep(PipelineStep):
             "parameters": {
                 'model': {
                     'title': 'Summarizer model',
-                    'description': 'LLM model instance to use for summarization. Can be any T5 transformer model.',
+                    'description': 'The LLM instance used for summarization. the following models are currently supported: DeepSeekv3,gemma2, qwen2.5, llama3.1.',
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'supported-values': ['DeepSeekv3', 'gemma2', 'qwen2.5', 'llama3.1'],

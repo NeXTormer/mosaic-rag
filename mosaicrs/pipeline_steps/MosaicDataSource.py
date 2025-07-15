@@ -22,7 +22,7 @@ class MosaicDataSource(PipelineStep):
         self.consider_query = consider_query
         self.target_column_name = output_column
         self.index = search_index
-        self.limit = limit
+        self.limit = limit.strip() if limit.strip().isdigit() else "10"
 
         self.request_limiter_semaphore = asyncio.Semaphore(50)
 
@@ -68,8 +68,9 @@ class MosaicDataSource(PipelineStep):
 
         extracted_docs = []
         for index_result in json_data["results"]:
-            for _, v in index_result.items():
+            for key, v in index_result.items():
                 for doc in v:
+                    doc["_source_index_"] = key
                     extracted_docs.append(doc)
         
         df_docs = pd.DataFrame(extracted_docs)
@@ -79,32 +80,26 @@ class MosaicDataSource(PipelineStep):
 
         handler.update_progress(0, len(df_docs))
 
-
         df_docs = asyncio.run(self._fetch_all_texts(handler, df_docs))
-
 
         if data.documents.empty:
             data.documents = df_docs
-
             data.set_text_column(self.target_column_name)
             data.set_rank_column('_original_ranking_')
         else:
-            #V1: First all results of source 1 and then all of source 2
             prev_max_ranking_id = max(get_most_current_ranking(data))
             df_docs["_original_ranking_"] += prev_max_ranking_id
-            print(prev_max_ranking_id)
-            print(df_docs)
-            #V2: First 1. and 1. of both sources, then 2. and 2., and so on
 
             if len(data.metadata[data.metadata["rank"]]) != 1:  
                 ranking_columns = data.metadata[data.metadata["rank"]]["id"].to_list()
                 for ranking_column in ranking_columns:
                     if ranking_column != "_original_ranking_":
-                        df_docs[ranking_column] = df_docs["_original_ranking_"]
+                        df_docs[ranking_column] = df_docs["_original_ranking_"] #Version1: giving docs original continous ranking
+                        #df_docs[ranking_column] = 1_000_000_000 #Version2: giving an extremly high ranking - might be a problem for certain combinations of steps
 
             data.documents = pd.concat([data.documents, df_docs], ignore_index=True)
 
-            print(data.documents)
+        data.set_chip_column("_source_index_")
 
         data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
 

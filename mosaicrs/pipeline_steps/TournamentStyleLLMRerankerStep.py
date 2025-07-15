@@ -96,7 +96,7 @@ class TournamentStyleLLMRerankerStep(PipelineStep):
         return data
 
     def llm_1_on_1_comparison(self, doc1:str, doc2:str, query:str, handler: PipelineStepHandler):
-        timeout_max = 10
+        timeout_max = 3
         prompt=f"Here are two texts, each marked with a [1] or [2] at the beginning. Which of the two following texts is more relevant to the Query:'{query}'. Only answer '[1]' if the first text is more relevant or '[2]' if the second one is more relevent!\n\n[1]: {doc1} \n\n[2]: {doc2}"
         for _ in range(timeout_max):
             potential_answer = self.llm.generate(prompt=prompt)

@@ -26,6 +26,8 @@ from mosaicrs.pipeline_steps.BasicSentimentAnalysisStep import BasicSentimentAna
 # from mosaicrs.pipeline_steps.TextLemmatizationStep import TextLemmatizerStep
 from mosaicrs.pipeline_steps.TournamentStyleLLMRerankerStep import TournamentStyleLLMRerankerStep
 from mosaicrs.pipeline_steps.GroupStyleLLMRerankerStep import GroupStyleLLMRerankerStep
+from mosaicrs.pipeline_steps.ReductionStep import ReductionStep
+from mosaicrs.pipeline_steps.RelevanceMarkingStep import RelevanceMarkingStep
 
 pipeline_steps_mapping = {
     "mosaic_datasource": MosaicDataSource,
@@ -44,6 +46,8 @@ pipeline_steps_mapping = {
     # "text_lemmatization": TextLemmatizerStep,
     "tournament_llm_reranker": TournamentStyleLLMRerankerStep,
     "group_llm_reranker": GroupStyleLLMRerankerStep,
+    "reduction_step": ReductionStep,
+    "relevance_marking_step": RelevanceMarkingStep,
 }
 
 class PipelineTask:

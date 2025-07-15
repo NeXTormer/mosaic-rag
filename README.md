@@ -288,14 +288,14 @@ The `MosaicDataSource` is a [`PipelineStep`](#pipelinestep) used as the primary 
 
 
 ### DocumentSummarizerStep
-- **UI-Name:** `LLM Summarizer`
+-   **UI-Name:** `LLM Summarizer`
 -   **Category:** [Summarizers](#categories)
 -   **Implements:** [`PipelineStep`](#pipelinestep)
     
 
 #### Description
 
-Summarizes each document in the result set using a large language model (LLM). This step allows you to specify which column to summarize (`input_column`) and where to store the results (`output_column`) within the [`PipelineIntermediate`](#pipelineintermediate).
+Summarizes each document in the result set using a large language model (LLM). This step allows you to specify which column to summarize (`input_column`) and where to store the results (`output_column`) within the [`PipelineIntermediate`](#pipelineintermediate). Regarding the LLM itself, MosaicRAG provides support for DeepSeekv3, gemma2, qwen2.5, and llama3.1, but it is possible to use any LLM which is accessible through the LiteLLM-Interface (for that additions to the specific files have to be made - documentation regarding this will come in the future). 
 
 #### Parameters
 
@@ -314,41 +314,39 @@ Summarizes each document in the result set using a large language model (LLM). T
 
 ----------
 
-### `Query Summarizer`
+### ResultsSummarizerStep
 
--   **Category:** Summarizers
-    
--   **Implements:** `PipelineStep`
-    
+-   **UI-Name:** `Query Summarizer`
+-   **Category:** [Summarizers](#categories)
+-   **Implements:** [`PipelineStep`](#pipelinestep)
 
 #### Description
 
-Generates a final summary that condenses the content of all remaining documents in the `PipelineIntermediate`, based on the original search query.
+Generates a overall summary that condenses the content of all remaining documents in the [`PipelineIntermediate`](#pipelineintermediate) at the time of the ResultSummarizerStep, based on the original search query. The summarized result gets then put into the metadata part of the [`PipelineIntermediate`](#pipelineintermediate) under the name of the `output_column`. For the summarization itself the texts of the `input_column` from the [`PipelineIntermediate`](#pipelineintermediate) are used. Regarding the LLM itself, MosaicRAG provides support for DeepSeekv3, gemma2, qwen2.5, and llama3.1, but it is possible to use any LLM which is accessible through the LiteLLM-Interface (for that additions to the specific files have to be made - documentation regarding this will come in the future).
 
 #### Parameters
 
 -   **`model`**  
-    The LLM instance used for summarization (T5 transformers or DeepSeek API supported).
+    The LLM instance used for summarization. the following models are currently supported: `DeepSeekv3`,`gemma2`, `qwen2.5`, `llama3.1`.
     
 -   **`input_column`**  
-    Column in the `PipelineIntermediate` containing the text to summarize.
+    Column in the [`PipelineIntermediate`](#pipelineintermediate) containing the text to summarize.
     
 -   **`output_column`**  
-    Column name in the metadata DataFrame where the final summary is stored.
+    Column name in the metadata dataFrame in the [`PipelineIntermediate`](#pipelineintermediate) where the final summary is stored.
     
 
 ----------
 
-### `Content Extractor`
-
--   **Category:** Pre-Processing
-    
--   **Implements:** `RowProcessorPipelineStep`
+### ContentExtractorStep
+-   **UI-Name:** `Content Extractor`
+-   **Category:** [Pre-Processing](#categories)
+-   **Implements:** [`RowProcessorPipelineStep`](#rowprocessorpipelinestep)
     
 
 #### Description
 
-Extracts the main content from full-text documents, removing non-essential elements like navigation menus or filler content. Uses a moving average based on sentence length. This step will eventually be deprecated once cleaner indexes are available.
+Extracts the main content from full-text documents, removing non-essential elements like navigation menus or filler content. Uses a moving average based on sentence length. This step will eventually be deprecated once cleaner indexes are available. It used the text data from the `input_column` and saves the cleaned text data in the `output_column` of the [`PipelineIntermediate`](#pipelineintermediate).
 
 #### Parameters
 
@@ -361,24 +359,24 @@ Extracts the main content from full-text documents, removing non-essential eleme
 
 ----------
 
-### `Stopword Remover`
+### StopWordRemovalStep
 
--   **Category:** Pre-Processing
-    
--   **Implements:** `PipelineStep`
+-   **UI-Name:** `Stopword Remover`
+-   **Category:** [Pre-Processing](#categories)
+-   **Implements:** [`PipelineStep`](#pipelinestep)
     
 
 #### Description
 
-Removes stop words from the input text based on the document's language (supports English, German, French, and Italian). Stop words are sourced from the NLTK corpus.
+Removes stop words from the input text based on the document's language (supports English, German, French, and Italian). The list of supported languages can change in the future. Stop words are sourced from the NLTK corpus. The language codes are based on the iso 639-2 alpha-3 norm.
 
 #### Parameters
 
 -   **`input_column`**  
-    The column to clean in the `PipelineIntermediate`.
+    The column to clean in the [`PipelineIntermediate`](#pipelineintermediate).
     
 -   **`output_column`**  
-    Where the stopword-cleaned text will be stored.
+    Where the stopword-cleaned text will be stored in the [`PipelineIntermediate`](#pipelineintermediate).
     
 -   **`language_column`**  
     Specifies the language of each document.
@@ -386,49 +384,49 @@ Removes stop words from the input text based on the document's language (support
 
 ----------
 
-### `Punctuation Remover`
+### PunctuationRemovalStep
 
--   **Category:** Pre-Processing
-    
--   **Implements:** `PipelineStep`
+-   **UI-Name:** `Punctuation Remover`
+-   **Category:** [Pre-Processing](#categories)
+-   **Implements:** [`PipelineStep`](#pipelinestep)
     
 
 #### Description
 
-Removes punctuation from a given text column using Python’s `string.punctuation` list.
+Removes punctuation from a given text column. First all words get expanded using the contractions python library, afterwards everything gets normalized using the unicodedata python library with the "NFKD" form. Then all remaining punctuation is filtered out and removed using Python’s `string.punctuation` list.
 
 #### Parameters
 
 -   **`input_column`**  
-    Text column to clean.
+    Text column in the [`PipelineIntermediate`](#pipelineintermediate) to remove the punctuation.
     
 -   **`output_column`**  
-    Destination column for punctuation-free text.
+    Destination column for punctuation-free text in the [`PipelineIntermediate`](#pipelineintermediate).
     
 -   **`process_query`**  
-    Boolean (`Yes`/`No`): Whether to also remove punctuation from the search query.
+    Boolean (`Yes`/`No`): Whether to also remove punctuation from the search query. Yes -> remove punctuation in the query, No -> do not remove punctuation in the query
     
 
 ----------
 
-### `Text Stemmer`
+### TextStemmerStep
 
--   **Category:** Pre-Processing
-    
--   **Implements:** `PipelineStep`
+-   **UI-Name:** `Text Stemmer`
+-   **Category:** [Pre-Processing](#categories)
+-   **Implements:** [`PipelineStep`](#pipelinestep)
     
 
 #### Description
 
-Applies stemming to a text column using the `SnowballStemmer` from NLTK. Language-specific stemmers are used where supported; unsupported languages are left unchanged.
+Applies stemming to a text column using the `SnowballStemmer` from NLTK. Language-specific stemmers are used where supported; unsupported languages are left unchanged. Currently the following languages are supported: English, German, French, Italian. The language codes are based on the iso 639-2 alpha-3 norm.
 
 #### Parameters
 
 -   **`input_column`**  
-    Column with the original text.
+    Column with the input texts in the [`PipelineIntermediate`](#pipelineintermediate).
     
 -   **`output_column`**  
-    Column where the stemmed text will be saved.
+    Column where the stemmed text will be saved in the [`PipelineIntermediate`](#pipelineintermediate).
     
 -   **`language_column`**  
     Contains the language code for each document.
@@ -436,24 +434,24 @@ Applies stemming to a text column using the `SnowballStemmer` from NLTK. Languag
 
 ----------
 
-### `Text Lemmatizer` _(Not currently functional)_
+### TextLemmatizerStep _(Not currently functional)_
 
--   **Category:** Pre-Processing
-    
--   **Implements:** `PipelineStep`
+-   **UI-Name:** `Text Lemmatizer`
+-   **Category:** [Pre-Processing](#categories)
+-   **Implements:** [`PipelineStep`](#pipelinestep)
     
 
 #### Description
 
-Performs lemmatization on the input text using `WordNetLemmatizer` for English or spaCy models for other supported languages. Unsupported languages remain unchanged.
+Performs lemmatization on the input text using `WordNetLemmatizer` for English or spaCy models for other supported languages. Unsupported languages remain unchanged. Other supported languages are currently German, French, Italian. The language codes are based on the iso 639-2 alpha-3 norm.
 
 #### Parameters
 
 -   **`input_column`**  
-    The column containing the original text.
+    The column containing the input text in the [`PipelineIntermediate`](#pipelineintermediate).
     
 -   **`output_column`**  
-    The column for the lemmatized result.
+    The column for where the lammatization results will be saved in the [`PipelineIntermediate`](#pipelineintermediate).
     
 -   **`language_column`**  
     Column with the language codes.
@@ -461,85 +459,82 @@ Performs lemmatization on the input text using `WordNetLemmatizer` for English o
 
 ----------
 
-### `Reduction Step`
+### ReductionStep
 
--   **Category:** Filtering
-    
--   **Implements:** `PipelineStep`
+-   **UI-Name:** `Result Reduction`
+-   **Category:** [Pre-Processing](#categories)
+-   **Implements:** [`PipelineStep`](#pipelinestep)
     
 
 #### Description
 
-Reduces the number of documents in the `PipelineIntermediate` to the top `k` based on a ranking column.
+Reduces the number of documents in the [`PipelineIntermediate`](#pipelineintermediate) to the top `k` based on a `ranking column`. Either you choose the pre-selected '_original_ranking_' or enter the wanted ranking coumn name. The columns created by applying a reranker have the form '_reranking_rank_n_', where n is the reranking ID.
 
 #### Parameters
 
 -   **`ranking_column`**  
-    Column used to determine top-ranking entries.
+    Column containing the ranking in the [`PipelineIntermediate`](#pipelineintermediate) according to which the selection should happen.
     
 -   **`k`**  
     Number of entries to keep.
     
--   **`reset_index`**  
-    Boolean (`Yes`/`No`): Whether to reset ranks to match the reduced set.
-    
 
 ----------
 
-### `Word Counter`
+### WordCounterStep
 
--   **Category:** Metadata Analysis
-    
--   **Implements:** `RowProcessorPipelineStep`
+-   **UI-Name:** `Word Counter`
+-   **Category:** [Metadata Analysis](#categories)
+-   **Implements:** [`RowProcessorPipelineStep`](#rowprocessorpipelinestep)
     
 
 #### Description
 
-Calculates the number of words in each document for a specified column in the `PipelineIntermediate`.
+Calculates the number of words in each document for a specified `input_column` in the [`PipelineIntermediate`](#pipelineintermediate) and stores ot in the respective `output_column`.
 
 #### Parameters
 
 -   **`input_column`**  
-    Column to analyze for word count.
+    Column in the [`PipelineIntermediate`](#pipelineintermediate) to analyze for word count.
     
 -   **`output_column`**  
-    Column to store the resulting word counts.
+    Column to store the resulting word counts in the [`PipelineIntermediate`](#pipelineintermediate).
     
 
 ----------
 
-### `Basic Sentiment Analyser`
+### BasicSentimentAnalysisStep
 
--   **Category:** Metadata Analysis
-    
--   **Implements:** `RowProcessorPipelineStep`
+-   **UI-Name:** `Basic Sentiment Analyser`
+-   **Category:** [Metadata Analysis](#categories)
+-   **Implements:** [`RowProcessorPipelineStep`](#rowprocessorpipelinestep)
     
 
 #### Description
 
-Uses the Hugging Face model `bhadresh-savani/distilbert-base-uncased-emotion` to return one of six emotions: _sadness, joy, love, anger, fear, surprise_. Works only on English texts and up to 512 tokens.
+Uses the Hugging Face model `bhadresh-savani/distilbert-base-uncased-emotion` to return one of six emotions: _sadness, joy, love, anger, fear, surprise_. Works only on English texts and up to 512 tokens. It takes the text data from the `input_column` of the [`PipelineIntermediate`](#pipelineintermediate) and saves the sentiment in the `output_column`.
 
 #### Parameters
 
 -   **`input_column`**  
-    Column containing the input text.
+    Column of the [`PipelineIntermediate`](#pipelineintermediate) containing the input text.
     
 -   **`output_column`**  
-    Column to store the predicted sentiment for each document.
+    Column to store the predicted sentiment for each document in the [`PipelineIntermediate`](#pipelineintermediate).
     
 
 ----------
 
-### `Embedding-Reranker`
+### EmbeddingRerankerStep
 
--   **Category:** Rerankers
-    
--   **Implements:** `PipelineStep`
+-   **UI-Name:** `EmbeddingReranker`
+-   **Category:** [Rerankers](#categories)
+-   **Implements:** [`PipelineStep`](#pipelinestep)
     
 
 #### Description
 
-Reranks documents using cosine similarity of dense embeddings generated from a model.
+Reranks documents using cosine similarity of dense embeddings generated from an embedding model. Per default the `Snowflake/snowflake-arctic-embed-s` embedding model is used. The text data is taken from the `input_column` of the [`PipelineIntermediate`](#pipelineintermediate) and the generated new ranks are saved in an new `_reranking_rank_n_` column, where `n` is the number of reranking steps already existing. Optionally you can also give a new `query`, which is then used during the reranking process.
 
 #### Parameters
 
@@ -559,16 +554,16 @@ Reranks documents using cosine similarity of dense embeddings generated from a m
 
 ----------
 
-### `TF-IDF-Reranker`
+### TFIDFRerankerStep
 
--   **Category:** Rerankers
-    
--   **Implements:** `PipelineStep`
+-   **UI-Name:** `TF-IDF-Reranker`
+-   **Category:** [Rerankers](#categories)
+-   **Implements:** [`PipelineStep`](#pipelinestep)
     
 
 #### Description
 
-Reranks documents using TF-IDF vectors and a configurable similarity metric.
+Reranks documents using TF-IDF vectors and a configurable similarity metric. Currently MosaicRAG supports the following similarity metrics: Cosine, Euclidean distance, manhatten distance, BM25. The reranker takes the text data from the `input column` of the [`PipelineIntermediate`](#pipelineintermediate) and the generated new ranks are saved in an new `_reranking_rank_n_` column, where `n` is the number of reranking steps already existing. ptionally you can also give a new `query`, which is then used during the reranking process.
 
 #### Parameters
 
@@ -591,3 +586,13 @@ Reranks documents using TF-IDF vectors and a configurable similarity metric.
         
 
 ----------
+
+### TournamentStyleLLMRerankerStep
+
+### RelevanceMarkingStep
+
+### MeiliDataSource
+
+### GroupStyleLLMRerankerStep
+
+### ChromaDataSource

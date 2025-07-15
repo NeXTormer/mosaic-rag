@@ -79,13 +79,10 @@ def get_most_current_ranking(data: PipelineIntermediate):
             reranking_id = int(match.groups()[0])
             if reranking_id > highest_reranking_id:
                 highest_reranking_id = reranking_id
-    print(highest_reranking_id)
-    print(data.documents)
 
     if highest_reranking_id != 0:
         ranking = data.documents["_reranking_rank_"+str(highest_reranking_id)+"_"].to_list()
 
-    print(ranking)
 
     return ranking
 

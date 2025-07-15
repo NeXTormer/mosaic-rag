@@ -6,7 +6,6 @@ from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 import regex as re
 import numpy as np
 import itertools
-from mosaicrs.pipeline_steps.utils import get_most_current_ranking
 
 class GroupStyleLLMRerankerStep(PipelineStep):
 
@@ -57,7 +56,7 @@ class GroupStyleLLMRerankerStep(PipelineStep):
                 point_counter[relevant_text_id] += 1
             else:
                 handler.log("No relevant text in combi")
-            print("C")
+
             handler.increment_progress()
 
         sorted_indices = sorted(range(len(point_counter)), key=lambda i: (-point_counter[i], i))
@@ -85,7 +84,7 @@ class GroupStyleLLMRerankerStep(PipelineStep):
         prompt=f"Here are {self.k} texts, each marked with a {prompt_listing} at the beginning. Which of the {self.k} following texts is more relevant to the Query:'{query}'. Ony answer with the most relevant text ID in brackets!{prompt_texts}"
         for _ in range(timeout_max):
             potential_answer = self.llm.generate(prompt=prompt)
-            print(potential_answer)
+
             parseable_check = re.match(r"\[(\d+)\]", potential_answer)
             if parseable_check is not None:
                 parsed_number = int(parseable_check.groups()[0])
