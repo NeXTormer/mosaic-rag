@@ -1,10 +1,7 @@
 FROM python:3.11-slim AS app
 LABEL maintainer="Felix Holz <felix.holz@me.com>"
 
-# Set the working directory in the container
-WORKDIR /app
 
-# Install system dependencies and Python dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
@@ -17,20 +14,33 @@ RUN apt-get update && apt-get install -y \
     liblapack-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements.txt to the working directory
-COPY requirements.txt .
-
-# Install Python dependencies
 RUN pip install --upgrade pip setuptools wheel
 
-RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the app and mosaicrs folders into the container
+#WORKDIR /src
+
+#RUN git clone https://github.com/NeXTormer/mosaic-rag-frontend.git .
+#
+#
+#RUN mkdir -p /app/frontend && mv ./build/web/* /app/frontend/
+
+
+WORKDIR /app
+
+
 COPY app/ ./app
 COPY mosaicrs/ ./mosaicrs
 
 COPY deepseek.apikey ./deepseek.apikey
 COPY innkube.apikey ./innkube.apikey
+
+#COPY --from=build /src/build/web ./frontend
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+
 
 # Expose the port the app runs on
 EXPOSE 5000
@@ -39,8 +49,13 @@ EXPOSE 5000
 ENV FLASK_ENV=production
 ENV PYTHONUNBUFFERED=1
 
+
 # the docker host for the deployment server running redis
-ENV REDIS_HOST=172.17.0.1
+ENV REDIS_HOST 172.17.0.1
+ENV COLOR_THEME blue-dark
+ENV APP_TITLE mosaicRAG
+env APP_PIPELINE_CONFIG_ALLOWED true
+env APP_LOGS_ALLOWED true
 
 # Run the app with Gunicorn
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "300", "app.app:app"]
