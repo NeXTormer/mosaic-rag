@@ -789,7 +789,7 @@ class WordCounterStep(RowProcessorPipelineStep):
         return 'Word counter'
 ```
 
-The `class WordCounterStep(RowProcessorPipelineStep)` inherits from the abstract base class `RowProcessorPipelineStep`. As a subclass, it must implement the following abstract methods:
+The `class WordCounterStep(RowProcessorPipelineStep)` inherits from the abstract base class [`RowProcessorPipelineStep`](#rowprocessorpipelinestep). As a subclass, it must implement the following abstract methods:
 
 - `def transform_row(self, data, handler: PipelineStepHandler) -> (Any, Optional[str]):`
 - `def get_info() -> dict:`
@@ -810,13 +810,13 @@ Returns a dictionary with metadata about the pipeline step. This includes:
 - `description`: A short UI description shown in the step selector
 - `parameters`: A dictionary of configurable parameters for the step
 
-Each `RowProcessorPipelineStep` must define **at least two parameters**:
+Each [`RowProcessorPipelineStep`](#rowprocessorpipelinestep) must define **at least two parameters**:
 
 - `input_column`: The name of the column in the [`PipelineIntermediate`](#pipelineintermediate) that contains the input data.
-- `output_column`: The name of the column in the `PipelineIntermediate` where the output will be stored.
+- `output_column`: The name of the column in the [`PipelineIntermediate`](#pipelineintermediate) where the output will be stored.
 
 
-### Parameter Configuration
+#### Parameter Configuration
 
 Parameters are presented in the UI, where users can view and modify them. Each parameter can define the following fields:
 
@@ -864,7 +864,7 @@ The second return value in `transform_row()` helps the UI determine how to prese
 
 ## Choosing the Right Base Class
 
-If your pipeline step operates on **individual rows**, use the `RowProcessorPipelineStep` base class as shown.
+If your pipeline step operates on **individual rows**, use the [`RowProcessorPipelineStep`](#rowprocessorpipelinestep) base class as shown.
 
 However, if your step needs to:
 
@@ -876,3 +876,88 @@ Then you should implement your step using the [`PipelineStep`](#pipelinestep) ba
 
 
 ### Variation 2: [`PipelineStep`](#pipelinestep)
+
+Now we will implement the [`WordCounter`](#wordcounterstep)-Step via the [`PipelineStep`](#pipelinestep) abstract base class, Disclaimer: We will implement this version of the pipeline step in a minimalistic way, meaning that we do not care about anything caching related or progress bar related in this implementation. If you need more information about how you can implement this, take a closer look at the implementation of the `transform()`-function of the [`RowProcessorPipelineStep`](#rowprocessorpipelinestep). 
+
+```python
+from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
+from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
+from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
+
+
+class WordCounterStep2(PipelineStep):
+    def __init__(self, input_column: str, output_column: str):
+        self.input_column = input_column
+        self.output_column = output_column
+
+    def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
+        if self.input_column not in data.documents:
+            handler.log("The selected input column does not exist in the PipelineIntermediate.")
+            return data
+        
+        input_texts = data.documents[self.input_column]
+        text_word_counts = [len(text) for text in input_texts]
+
+        data.documents[self.output_column] = text_word_counts
+        data.set_chip_column(self.output_column)
+        
+        data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
+
+        return data
+
+
+    @staticmethod
+    def get_info() -> dict:
+        return {
+            "name": WordCounterStep2.get_name(),
+            "category": "Metadata Analysis",
+            "description": "Count the number words, separated by spaces, in the text. DISCLAIMER: This step is soley implemented for tutorial purposes. If needed please use the default WordCounterStep.",
+            "parameters": {
+                'input_column': {
+                    'title': 'Input column name',
+                    'description': '',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'supported-values': ['full-text'],
+                    'default': 'full-text',
+                },
+                'output_column': {
+                    'title': 'Output column name',
+                    'description': '',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'supported-values': ['wordCount', 'word_count'],
+                    'default': 'wordCount',
+                },
+            }
+        }
+
+    @staticmethod
+    def get_name() -> str:
+        return 'Word counter - via PipelineStep'
+```
+
+The `get_info()` and `get_name()` methods are essentially the same as those in the [`RowProcessorPipelineStep`](#rowprocessorpipelinestep) implementation, since [`RowProcessorPipelineStep`](#rowprocessorpipelinestep) inherits them from [`PipelineStep`](#pipelinestep). The main difference is with the `transform()` function, which now gets the whole [`PipelineIntermediate`](#pipelineintermediate) instead of only the data from one row. This enables the user/step to work with the whole input data at once. Lets take a closer look at this function: 
+
+```python 
+def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
+        if self.input_column not in data.documents:
+            handler.log("The selected input column does not exist in the PipelineIntermediate.")
+            return data
+        
+        input_texts = data.documents[self.input_column]
+        text_word_counts = [len(text) for text in input_texts]
+
+        data.documents[self.output_column] = text_word_counts
+        data.set_chip_column(self.output_column)
+        
+        data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
+
+        return data
+```
+
+At the start, we check whether the specified `input_column` exists in the documents DataFrame of the [`PipelineIntermediate`](#pipelineintermediate). If it does not exist, we use the `PipelineStepHandler`'s `log()` function to record a descriptive error message.
+
+**Important:** In error scenarios, always return the original [`PipelineIntermediate`](#pipelineintermediate) unchanged. This ensures that the pipeline can continue to function in subsequent steps, even if this particular step fails. As a result, the pipeline degrades gracefully without crashing.
+
+Next, we compute a list of word counts for the entire `input_column` and add it as a new column named `output_column` to the documents DataFrame within the [`PipelineIntermediate`](#pipelineintermediate). Afterwards we indicate that the `output_column` in the [`PipelineIntermediate`](#pipelineintermediate) contains chip data. In contrast to the 
