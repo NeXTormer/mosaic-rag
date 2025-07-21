@@ -152,6 +152,7 @@ def fetch_flutter_web_app(repo_url: str, local_path: Path, web_build_dir: Path) 
 # --- Flask Application Setup ---
 logging.info("Starting Flask server setup...")
 
+
 # Fetch the code BEFORE creating the app routes that depend on it
 try:
     FLUTTER_WEB_ROOT = fetch_flutter_web_app(GIT_REPO_URL, LOCAL_REPO_PATH, FLUTTER_WEB_BUILD_DIR)
@@ -227,6 +228,22 @@ def serve_flutter_static(filename):
         logging.error(f"Error serving static file {filename}: {e}")
         abort(500)
 
+@app.get('/app_config')
+def get_app_config():
+    return Response(
+        json.dumps(
+        {
+            "colorTheme": os.environ.get('COLOR_THEME', 'orange-dark'),
+            "title":  os.environ.get('APP_TITLE', 'mosaicRAG'),
+            "subTitle": os.environ.get('APP_SUBTITLE', ''),
+            "pipelineConfigAllowed": os.environ.get('APP_PIPELINE_CONFIG_ALLOWED', True),
+            "logsAllowed": os.environ.get('APP_LOGS_ALLOWED', True),
+            "pipeline": {"1": {"id": "mosaic_datasource", "parameters": {"output_column": "full-text",
+                                                                                      "url": "https://mosaic.ows.eu/service/api/",
+                                                                                      "limit": "20",
+                                                                                      "search_index": "simplewiki"}}
+    }}),
+        mimetype='application/json')
 
 @app.get('/task/chat/<string:chat_id>')
 def task_chat(chat_id: str):

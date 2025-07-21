@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  app:
+    image: mosaicrag:latest
+    container_name: mosaic-app
+    ports:
+      - "5000:5000"
+    environment:
+      - REDIS_HOST=redis
+      - COLOR_THEME=red-light
+      - APP_TITLE=wernerRAG
+    depends_on:
+      - redis
+    networks:
+      - mosaic-net
+
+  redis:
+    image: redis:alpine
+    container_name: redis-cache
+    networks:
+      - mosaic-net
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:
+
+networks:
+  mosaic-net:

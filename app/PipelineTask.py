@@ -31,7 +31,7 @@ from mosaicrs.pipeline_steps.RelevanceMarkingStep import RelevanceMarkingStep
 
 pipeline_steps_mapping = {
     "mosaic_datasource": MosaicDataSource,
-    "chroma_datasource": ChromaDataSource,
+    # "chroma_datasource": ChromaDataSource,
     # "meili_datasource": MeiliDataSource,
     "llm_summarizer": DocumentSummarizerStep,
     "all_results_summarizer": ResultsSummarizerStep,
