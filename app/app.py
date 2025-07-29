@@ -162,13 +162,6 @@ except (FileNotFoundError, ConnectionError, RuntimeError) as e:
      exit(1) # Or raise an exception that stops the WSGI server if applicable
 
 
-# --- MODIFIED: Lazy load the model on first instantiation ---
-if ChromaDataSource.model is None:
-    print(f"Loading embedding model for the first time: '{ChromaDataSource.EMBEDDING_MODEL}'...")
-    ChromaDataSource.model = SentenceTransformer(ChromaDataSource.EMBEDDING_MODEL)
-    print("Model loaded successfully.")
-
-
 # ========= END Load Dependencies =========
 
 
@@ -238,11 +231,14 @@ def get_app_config():
             "subTitle": os.environ.get('APP_SUBTITLE', ''),
             "pipelineConfigAllowed": os.environ.get('APP_PIPELINE_CONFIG_ALLOWED', True),
             "logsAllowed": os.environ.get('APP_LOGS_ALLOWED', True),
-            "pipeline": {"1": {"id": "mosaic_datasource", "parameters": {"output_column": "full-text",
+            "pipeline": json.loads(os.environ.get('APP_DEFAULT_PIPELINE', json.dumps({"1": {"id": "mosaic_datasource", "parameters": {"output_column": "full-text",
                                                                                       "url": "https://mosaic.ows.eu/service/api/",
                                                                                       "limit": "20",
-                                                                                      "search_index": "simplewiki"}}
-    }}),
+                                                                                      "search_index": "simplewiki"}}}))),
+            "aboutLinkText": os.environ.get('APP_ABOUT_LINK_TITLE', 'About MOSAIC'),
+            "aboutLinkURL": os.environ.get('APP_ABOUT_LINK_URL', 'https://mosaic.ows.eu/'),
+        }
+    ),
         mimetype='application/json')
 
 @app.get('/task/chat/<string:chat_id>')
