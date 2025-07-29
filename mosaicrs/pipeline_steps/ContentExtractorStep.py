@@ -4,7 +4,7 @@ from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from mosaicrs.pipeline_steps.RowProcessorPipelineStep import RowProcessorPipelineStep
 from typing import Optional
 import resiliparse.extract.html2text
-
+import regex as re
 
 class ContentExtractorStep(RowProcessorPipelineStep):
     def __init__(self, input_column: str, output_column: str):
@@ -14,8 +14,20 @@ class ContentExtractorStep(RowProcessorPipelineStep):
     def transform_row(self, data, handler) -> (any, Optional[str]):
         if data is None:
             return ''
+        
+        data_paragraphs = data.split("\n")
+        cleaned_paragraphs = []
 
-        return resiliparse.extract.html2text.extract_plain_text(data,preserve_formatting=False, main_content=True, alt_texts=True, noscript=False, comments=False,links=False), "text" 
+        handler.log(data_paragraphs)
+
+        for paragraph in data_paragraphs:
+            cleaned_paragraph = resiliparse.extract.html2text.extract_plain_text(paragraph,preserve_formatting=False, main_content=True, alt_texts=False, noscript=False, comments=False,links=False)
+            if paragraph.strip() is "" or cleaned_paragraph.strip() is not "":
+                cleaned_paragraphs.append(cleaned_paragraph)
+
+        cleaned_text = "\n".join(cleaned_paragraphs)
+
+        return re.sub(r"\n(\n)+",r"\n\n",cleaned_text), "text" 
 
     
 

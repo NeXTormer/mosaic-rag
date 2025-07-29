@@ -5,6 +5,7 @@ import contractions
 import numpy as np
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 import regex as re
+from enum import Enum
 
 def translate_language_code(language_code:str):
     language_dict = {
@@ -83,7 +84,8 @@ def get_most_current_ranking(data: PipelineIntermediate):
     if highest_reranking_id != 0:
         ranking = data.documents["_reranking_rank_"+str(highest_reranking_id)+"_"].to_list()
 
-
     return ranking
 
+class ErrorClasses(Enum):
+    Invalid_Column_Name = "INVALID COLUMN NAME"
 

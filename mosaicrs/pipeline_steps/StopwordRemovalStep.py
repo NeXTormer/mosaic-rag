@@ -18,6 +18,12 @@ class StopWordRemovalStep(PipelineStep):
         self.unsupported_languages = set()
 
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
+         
+        try:
+            pass
+        except Exception as e:
+            pass
+
         if self.input_column not in data.documents:
             handler.log(f"StopwordRemoval - InputColumn: {self.input_column} not in the PipelineIntermediate DataFrame.")
             return data
