@@ -1,5 +1,4 @@
 from typing import Optional
-
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from mosaicrs.pipeline_steps.RowProcessorPipelineStep import RowProcessorPipelineStep
 

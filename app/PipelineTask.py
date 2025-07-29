@@ -10,7 +10,7 @@ import pandas as pd
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.ChromaDataSource import ChromaDataSource
-from mosaicrs.pipeline_steps.ContentExtractorStep import ContentExtractorStep
+from mosaicrs.pipeline_steps.BasicContentExtractorStep import BasicContentExtractorStep
 from mosaicrs.pipeline_steps.EmbeddingRerankerStep import EmbeddingRerankerStep
 from mosaicrs.pipeline_steps.MeiliDataSource import MeiliDataSource
 from mosaicrs.pipeline_steps.MosaicDataSource import MosaicDataSource
@@ -28,6 +28,7 @@ from mosaicrs.pipeline_steps.TournamentStyleLLMRerankerStep import TournamentSty
 from mosaicrs.pipeline_steps.GroupStyleLLMRerankerStep import GroupStyleLLMRerankerStep
 from mosaicrs.pipeline_steps.ReductionStep import ReductionStep
 from mosaicrs.pipeline_steps.RelevanceMarkingStep import RelevanceMarkingStep
+from mosaicrs.pipeline_steps.ContentExtractorStep import ContentExtractorStep
 
 pipeline_steps_mapping = {
     "mosaic_datasource": MosaicDataSource,
@@ -35,7 +36,7 @@ pipeline_steps_mapping = {
     # "meili_datasource": MeiliDataSource,
     "llm_summarizer": DocumentSummarizerStep,
     "all_results_summarizer": ResultsSummarizerStep,
-    "content_extractor": ContentExtractorStep,
+    "basic_content_extractor": BasicContentExtractorStep,
     "embedding_reranker": EmbeddingRerankerStep,
     "word_counter": WordCounterStep,
     "tf_idf_reranker": TFIDFRerankerStep,
@@ -48,6 +49,7 @@ pipeline_steps_mapping = {
     "group_llm_reranker": GroupStyleLLMRerankerStep,
     "reduction_step": ReductionStep,
     "relevance_marking_step": RelevanceMarkingStep,
+    "content_extractor": ContentExtractorStep,
 }
 
 class PipelineTask:

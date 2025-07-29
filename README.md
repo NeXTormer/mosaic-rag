@@ -230,6 +230,36 @@ The PipelineIntermediate object serves as the primary means of communication bet
 | Metadata Analysis | This category holds pipeline steps which are used for analysis purposes on each individual row.|
 
 
+## PipelineStepHandler
+
+The `transform()` method is the core function of each pipeline step. It applies the specific modifications to the [`PipelineIntermediate`](#pipelineintermediate) object for that step. Each `transform()` method has two parameters. One is the already mentioned [`PipelineIntermediate`](#pipelineintermediate), which holds the current data, its metadata and the history of intermediate results, and the other parameter is a `PipelineStepHandler` object. The respective class is implemented in the `PipelineStepHandler.py` file. This object is responsible for everything related to caching, updating the progress bar/status and logging additional information. A practical example of how this is used can be seen in the implementation of the `transform()` method in the [`RowProcessorPipelineStep`](#rowprocessorpipelinestep) seen in the tutorial at [`Variation1`](#variation-1-rowprocessorpipelinestep). The methods of the `PipelineStepHandler` object can be put into three different categories:
+
+### 1. Related to Progress updates
+
+- `def update_progress(self, current_iteration, total_iterations):` - Either initially setting up the progress bar by giving the starting iteration count as well as the total number of iterations (e.g. (0, max_num_iteration)) or to overwrite the current progress bar setting by making larger jumps between values of the progress bar or adapting the max iteration count. 
+
+- `def increment_progress(self):` - Increasing the current iteration count by one. The max iteration count keeps the same. Gets most often used in loops to update the progress bar of the UI iteratively. 
+
+- `def get_status(self):` - Returns a dictionary with stats regarding the progress of the current step. This includes the `step_percentage` (percentage of how many steps are already done), `step_progress` (string containing the current number of iterations as well as the max number of iterations in the format: "current/maximum"), and `log` (the logs contained in the PipelineStepHandler).
+
+- `def reset(self, step_id: str):` - Resetting everything progress bar related of the PipelineStepHandler object. Gets called automatically by the UI when the cancel button is pressed. 
+
+- `def get_cache_hit_ratio(self):` - If `self.caching_enable` is true, return the ratio of cache hits to misses. If  `self.caching_enable` is false return 0.
+
+
+### 2. Related to Caching
+
+- `def put_cache(self, key: str, value: str):` - If `self.caching_enable` is true, save the `value` into the cache using the `key` and the current `self.step_id` together as a key.
+
+- `def get_cache(self, key: str):` - If `self.caching_enable` is true, try to get the value with the current `self.step_id` and `key` together as a ID. If the entry exists return the cache entry and increase the number of cache hits (`self.cache_hits`). If not return None and increase the number of cache misses (`self.cache_misses`).
+
+### 3. Related to Logging/Information
+
+- `def log(self, message: str):` Is used by develpoers to print data to the log output of the MOSAICRAG log window which can be found in the UI under "Logs". Only works if the variable `self.logs_lock` is true. 
+
+- `def log_cache_statistics(self):`  If `self.caching_enable` is true, logs the number of cache hits and misses. 
+
+
 ## Pipeline steps
 
 ### PipelineStep
@@ -244,7 +274,7 @@ It defines the following abstract methods:
 
 - `def get_name() -> str:`
 
-The `transform` method is the core function of each pipeline step. It applies the specific modifications to the [`PipelineIntermediate`](#pipelineintermediate) object for that step.
+The `transform()` method is the core function of each pipeline step. It applies the specific modifications to the [`PipelineIntermediate`](#pipelineintermediate) object for that step.
 The two static methods, `get_info()` and `get_name()`, provide metadata about the step. They are primarily used to supply descriptive information to the frontend.
 
 ----------
@@ -340,6 +370,27 @@ Generates a overall summary that condenses the content of all remaining document
 
 ----------
 
+### BasicContentExtractorStep
+-   **UI-Name:** `Basic Content Extractor`
+-   **Category:** [Pre-Processing](#categories)
+-   **Implements:** [`RowProcessorPipelineStep`](#rowprocessorpipelinestep)
+    
+
+#### Description
+
+Extracts the main content from full-text documents, removing non-essential elements like navigation menus or filler content. Uses a moving average based on sentence length. This step will eventually be deprecated once cleaner indexes are available. It used the text data from the `input_column` and saves the cleaned text data in the `output_column` of the [`PipelineIntermediate`](#pipelineintermediate).
+
+#### Parameters
+
+-   **`input_column`**  
+    Column containing the raw text for processing.
+    
+-   **`output_column`**  
+    Column where the cleaned and extracted content will be saved.
+    
+
+----------
+
 ### ContentExtractorStep
 -   **UI-Name:** `Content Extractor`
 -   **Category:** [Pre-Processing](#categories)
@@ -348,7 +399,8 @@ Generates a overall summary that condenses the content of all remaining document
 
 #### Description
 
-Extracts the main content from full-text documents, removing non-essential elements like navigation menus or filler content. Uses a moving average based on sentence length. This step will eventually be deprecated once cleaner indexes are available. It used the text data from the `input_column` and saves the cleaned text data in the `output_column` of the [`PipelineIntermediate`](#pipelineintermediate).
+Extracts the main content from full-text documents, removing non-essential elements like navigation menus or filler content. It extracts these elements from the text using the Resiliparse python library, which implements a rule-based main content extraction, which removes elements such as navigation blocks, sidebars, footers, ads and as far as possible aslo invisible elements. It used the text data from the `input_column` and saves the cleaned text data in the `output_column` of the [`PipelineIntermediate`](#pipelineintermediate). 
+
 
 #### Parameters
 
@@ -692,7 +744,7 @@ The default implementation of the [`WordCounter`](#wordcounterstep)-Step is done
 
 But before we start with anything lets first define the requirements of the pipeline step we want to implement in this tutorial. We want to implement a pipeline step, that given a certain column of the [`PipelineIntermediate`](#pipelineintermediate), calculate the amount of words in each of the rows and save it in another column. The word count per document should then also be visible as a chip in the UI.
 
-### Variation 1: [`RowProcessorPipelineStep`](#rowprocessorpipelinestep)
+## Variation 1: [`RowProcessorPipelineStep`](#rowprocessorpipelinestep)
 
 Before implementing the [`WordCounter`](#wordcounterstep)-Step, we take a closer look at the implementation at the `transform()`-function in the [`RowProcessorPipelineStep`](#rowprocessorpipelinestep). 
 
@@ -789,7 +841,7 @@ class WordCounterStep(RowProcessorPipelineStep):
         return 'Word counter'
 ```
 
-The `class WordCounterStep(RowProcessorPipelineStep)` inherits from the abstract base class `RowProcessorPipelineStep`. As a subclass, it must implement the following abstract methods:
+The `class WordCounterStep(RowProcessorPipelineStep)` inherits from the abstract base class [`RowProcessorPipelineStep`](#rowprocessorpipelinestep). As a subclass, it must implement the following abstract methods:
 
 - `def transform_row(self, data, handler: PipelineStepHandler) -> (Any, Optional[str]):`
 - `def get_info() -> dict:`
@@ -797,12 +849,12 @@ The `class WordCounterStep(RowProcessorPipelineStep)` inherits from the abstract
 - `def get_cache_fingerprint(self) -> str:`
 
 
-## Method Overview
+### Method Overview
 
-### `get_name()`
+#### `get_name()`
 Returns the name of the pipeline step, which is used for display in the UI.
 
-### `get_info()`
+#### `get_info()`
 Returns a dictionary with metadata about the pipeline step. This includes:
 
 - `name`: Obtained from `get_name()`
@@ -810,13 +862,13 @@ Returns a dictionary with metadata about the pipeline step. This includes:
 - `description`: A short UI description shown in the step selector
 - `parameters`: A dictionary of configurable parameters for the step
 
-Each `RowProcessorPipelineStep` must define **at least two parameters**:
+Each [`RowProcessorPipelineStep`](#rowprocessorpipelinestep) must define **at least two parameters**:
 
 - `input_column`: The name of the column in the [`PipelineIntermediate`](#pipelineintermediate) that contains the input data.
-- `output_column`: The name of the column in the `PipelineIntermediate` where the output will be stored.
+- `output_column`: The name of the column in the [`PipelineIntermediate`](#pipelineintermediate) where the output will be stored.
 
 
-### Parameter Configuration
+##### Parameter Configuration
 
 Parameters are presented in the UI, where users can view and modify them. Each parameter can define the following fields:
 
@@ -830,7 +882,7 @@ Parameters are presented in the UI, where users can view and modify them. Each p
 If `enforce-limit` is `True`, users can only select from `supported-values`. If `False`, users can also enter custom values.
 
 
-### `Constructor`
+#### `Constructor`
 
 Since `WordCounterStep` requires no additional parameters, its constructor simply passes the required parameters to the base class:
 
@@ -839,7 +891,7 @@ def __init__(self, input_column: str, output_column: str):
     super().__init__(input_column, output_column)
 ```
 
-### `transform_row()` Implementation
+#### `transform_row()` Implementation
 
 ```python
 def transform_row(self, data, handler) -> (str, Optional[str]):
@@ -853,7 +905,7 @@ def transform_row(self, data, handler) -> (str, Optional[str]):
 The second return value (`'chip'`) is a display hint used by MosaicRAG's UI to render the result as a *chip*. This metadata is captured in the `transform_row()` output and used to update the internal metadata dataframe.
 
 
-## Display Keywords
+### Display Keywords
 
 The second return value in `transform_row()` helps the UI determine how to present the output data. The following keywords are supported:
 
@@ -862,9 +914,9 @@ The second return value in `transform_row()` helps the UI determine how to prese
 - **`rank`** – Use the output for document ranking; selectable via the ranking dropdown in the UI.
 
 
-## Choosing the Right Base Class
+### Choosing the Right Base Class
 
-If your pipeline step operates on **individual rows**, use the `RowProcessorPipelineStep` base class as shown.
+If your pipeline step operates on **individual rows**, use the [`RowProcessorPipelineStep`](#rowprocessorpipelinestep) base class as shown.
 
 However, if your step needs to:
 
@@ -875,4 +927,152 @@ However, if your step needs to:
 Then you should implement your step using the [`PipelineStep`](#pipelinestep) base class instead.
 
 
-### Variation 2: [`PipelineStep`](#pipelinestep)
+## Variation 2: [`PipelineStep`](#pipelinestep)
+
+Now we will implement the [`WordCounter`](#wordcounterstep)-Step via the [`PipelineStep`](#pipelinestep) abstract base class, Disclaimer: We will implement this version of the pipeline step in a minimalistic way, meaning that we do not care about anything caching related or progress bar related in this implementation. If you need more information about how you can implement this, take a closer look at the implementation of the `transform()`-function of the [`RowProcessorPipelineStep`](#rowprocessorpipelinestep). 
+
+```python
+from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
+from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
+from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
+
+
+class WordCounterStep2(PipelineStep):
+    def __init__(self, input_column: str, output_column: str):
+        self.input_column = input_column
+        self.output_column = output_column
+
+    def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
+        if self.input_column not in data.documents:
+            handler.log("The selected input column does not exist in the PipelineIntermediate.")
+            return data
+        
+        input_texts = data.documents[self.input_column]
+        text_word_counts = [len(text) for text in input_texts]
+
+        data.documents[self.output_column] = text_word_counts
+        data.set_chip_column(self.output_column)
+        
+        data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
+
+        return data
+
+
+    @staticmethod
+    def get_info() -> dict:
+        return {
+            "name": WordCounterStep2.get_name(),
+            "category": "Metadata Analysis",
+            "description": "Count the number words, separated by spaces, in the text. DISCLAIMER: This step is soley implemented for tutorial purposes. If needed please use the default WordCounterStep.",
+            "parameters": {
+                'input_column': {
+                    'title': 'Input column name',
+                    'description': '',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'supported-values': ['full-text'],
+                    'default': 'full-text',
+                },
+                'output_column': {
+                    'title': 'Output column name',
+                    'description': '',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'supported-values': ['wordCount', 'word_count'],
+                    'default': 'wordCount',
+                },
+            }
+        }
+
+    @staticmethod
+    def get_name() -> str:
+        return 'Word counter - via PipelineStep'
+```
+
+The `get_info()` and `get_name()` methods are essentially the same as those in the [`RowProcessorPipelineStep`](#rowprocessorpipelinestep) implementation, since [`RowProcessorPipelineStep`](#rowprocessorpipelinestep) inherits them from [`PipelineStep`](#pipelinestep). The main difference is with the `transform()` function, which now gets the whole [`PipelineIntermediate`](#pipelineintermediate) instead of only the data from one row. This enables the user/step to work with the whole input data at once. Lets take a closer look at this function: 
+
+```python 
+def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
+        if self.input_column not in data.documents:
+            handler.log("The selected input column does not exist in the PipelineIntermediate.")
+            return data
+        
+        input_texts = data.documents[self.input_column]
+        text_word_counts = [len(text) for text in input_texts]
+
+        data.documents[self.output_column] = text_word_counts
+        data.set_chip_column(self.output_column)
+        
+        data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
+
+        return data
+```
+
+At the start, we check whether the specified `input_column` exists in the documents DataFrame of the [`PipelineIntermediate`](#pipelineintermediate). If it does not exist, we use the `PipelineStepHandler`'s `log()` function to record a descriptive error message.
+
+**Important:** In error scenarios, always return the original [`PipelineIntermediate`](#pipelineintermediate) unchanged. This ensures that the pipeline can continue to function in subsequent steps, even if this particular step fails. As a result, the pipeline degrades gracefully without crashing.
+
+Next, we compute a list of word counts for the entire `input_column` and add it as a new column named `output_column` to the documents DataFrame within the [`PipelineIntermediate`](#pipelineintermediate). Afterwards we indicate that the `output_column` in the [`PipelineIntermediate`](#pipelineintermediate) contains chip data. In contrast to the [`RowProcessorPipelineStep`](#rowprocessorpipelinestep)-Variation we have to indicate this ourself. The [`PipelineIntermediate`](#pipelineintermediate) object has three functions to set the three different properties:
+
+- `def set_text_column(self, column: str):` - Sets the respective `column` as a `text` column, indicating that this column can be selected in the "Test"-dropdown field in the UI as the main display text of the search results. 
+
+- `def set_chip_column(self, column: str):`- Sets the respective `column` as a `chip` column, indicating that this column contains data which should be displayed as a chip for each individual search result. The visibility of the different chip-columns can be changed in the UI. 
+
+- `def set_rank_column(self, column: str):` - Sets the respective `column` as a `rank` column, indicating that this column can be selected in the "Ranking"-dropdown field in the UI as the ranking of the search results which is used as the display ranking. 
+
+The properties are the same as explained previously in [`Keywords`](#display-keywords).
+
+**Important:** One column can have multiple of these properties at once. For example: You have two ranking columns which both can be used for displaying the selected ranking so both have the `rank` property. In addition also both ranking columns have the `chip` property so the ranking can be seen as a chip for each individual result. You could display the results based on ranking "A" and display ranking "B" as a chip so that you can compare, how the two rankings differ. 
+
+Let's return to our `transform()` function. In the second-to-last step, we update the `history` DataFrame of the [`PipelineIntermediate`](#pipelineintermediate). This line can generally be copied as the second-to-last line in every `transform()` function where you want to save intermediate results. The `history` DataFrame collects the outputs from each individual pipeline step, effectively capturing the state of the data after each transformation. These intermediate results can be useful for later analysis or for other steps in the pipeline that need to track how certain statistics or values evolve across steps. You can omit this line if you do not want to store the intermediate result. Reasons for that can be limited storage space or computational power. At the end of the `transform()` function always returned the adapted [`PipelineIntermediate`](#pipelineintermediate) object `data`. 
+
+Regarding when to choose [`PipelineStep`](#pipelinestep) as your base class and when to choose [`RowProcessorPipelineStep`](#rowprocessorpipelinestep) please take a look at the subchapter [`Choosing the Right Base Class`](#choosing-the-right-base-class).
+
+
+## Adding your own step to the PipelineTask.py
+
+Once you've implemented your own pipeline step, regardless of which base class you chose, the final step is to register it in the `PipelineTask.py` file. This involves just two small additions:
+
+### 1. Import Your Pipeline Step
+
+At the top of `PipelineTask.py`, import your new step. You’ll see imports for other default pipeline steps already present, so simply follow the same pattern. For example, if you've created a second [`WordCounter`](#wordcounterstep) step, the import might look like this:
+
+```python 
+from mosaicrs.pipeline_steps.WordCounterStep2 import WordCounterStep2
+```
+
+### 2.  Add to the pipeline_steps_mapping Dictionary
+
+Next, add your pipeline step to the `pipeline_steps_mapping` dictionary. Choose a unique string key (no whitespace) and ensure it’s not already used by another step. Then, add your class as the value. Here's how the dictionary might look with the new WordCounterStep2 included:
+
+
+```python 
+pipeline_steps_mapping = {
+    "mosaic_datasource": MosaicDataSource,
+    "llm_summarizer": DocumentSummarizerStep,
+    "all_results_summarizer": ResultsSummarizerStep,
+    "basic_content_extractor": BasicContentExtractorStep,
+    "embedding_reranker": EmbeddingRerankerStep,
+    "word_counter": WordCounterStep,
+    "tf_idf_reranker": TFIDFRerankerStep,
+    "punctuation_removal": PunctuationRemovalStep,
+    "stopword_removal": StopWordRemovalStep,
+    "text_stemmer": TextStemmerStep,
+    "basic_sentiment_analysis": BasicSentimentAnalysisStep,
+    "tournament_llm_reranker": TournamentStyleLLMRerankerStep,
+    "group_llm_reranker": GroupStyleLLMRerankerStep,
+    "reduction_step": ReductionStep,
+    "relevance_marking_step": RelevanceMarkingStep,
+    "word_counter2": WordCounterStep2, #new
+}
+```
+
+After this, your new step is ready to be used in any pipeline configuration through the MOSAICRAG UI.
+
+## Example Pictures
+
+![BaseClass_PipelineStep](./documentation/pictures/Base_PipelineStep.png)
+
+![BaseClass_RowProcessorPipelineStep](./documentation/pictures/Base_RowProcessorPipelineStep.png)
+
+![Example_PipelineOverview](./documentation/pictures/Example_Pipeline.png)
