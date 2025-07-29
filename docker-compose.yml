@@ -1,15 +1,15 @@
-version: '3.8'
-
 services:
   app:
     image: mosaicrag:latest
     container_name: mosaic-app
     ports:
-      - "5000:5000"
+      - "5001:5000"
     environment:
       - REDIS_HOST=redis
-      - COLOR_THEME=red-light
-      - APP_TITLE=wernerRAG
+      - COLOR_THEME=orange-light
+      - APP_TITLE='My RAG'
+      - APP_SUBTITLE=test123
+
     depends_on:
       - redis
     networks:

@@ -8,26 +8,19 @@ from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 
 
 class ChromaDataSource(PipelineStep):
-    """
-    A data source class to retrieve documents from a ChromaDB collection
-    based on a text query. It generates a vector embedding from the query
-    and performs a similarity search.
-    """
-
     model = None
-    EMBEDDING_MODEL = 'jinaai/jina-embeddings-v2-small-en'
 
-    def __init__(self, output_column: str = 'full_text', limit='10'):
+    def __init__(self, output_column: str = 'full_text', limit='10', embedding_model='jinaai/jina-embeddings-v2-small-en', chromadb_url='dallions:8002', chromadb_collection='curlie'):
         self.target_column_name = output_column
         self.limit = int(limit)
 
-        CHROMA_HOST = "dallions"
-        CHROMA_PORT = 8002
-        CHROMA_COLLECTION_NAME = "curlie"
+        CHROMA_HOST = chromadb_url.split(':')[0]
+        CHROMA_PORT = int(chromadb_url.split(':')[1])
+        CHROMA_COLLECTION_NAME = chromadb_collection
 
         self.client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
         self.collection = self.client.get_collection(name=CHROMA_COLLECTION_NAME)
-
+        self.model = SentenceTransformer(embedding_model)
 
 
     def transform(self, data: PipelineIntermediate,
@@ -37,15 +30,16 @@ class ChromaDataSource(PipelineStep):
 
 
         query_text = data.query
-        data.documents = self.query_chromadb_to_dataframe(query_text)
+        data.documents = self.query_chromadb_to_dataframe(query_text, handler)
         data.set_text_column('full-text')
         data.set_rank_column('chromadb_distance')
 
         handler.increment_progress()
         return data
 
-    def query_chromadb_to_dataframe(self, query: str) -> pd.DataFrame:
+    def query_chromadb_to_dataframe(self, query: str, handler: PipelineStepHandler) -> pd.DataFrame:
         query_embedding = self.model.encode(query).tolist()
+        handler.log(f'Generated query embedding: {query_embedding}')
         search_result = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=self.limit
@@ -84,6 +78,33 @@ class ChromaDataSource(PipelineStep):
             "category": "Data Sources",
             "description": "Retrieve initial result set from a ChromaDB collection using vector search.",
             "parameters": {
+                'chromadb_url': {
+                    'title': 'ChromaDB URL',
+                    'description': 'URL of the ChromaDB instance.',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'required': True,
+                    'supported-values': ['dallions:8002'],
+                    'default': 'dallions:8002',
+                },
+                'embedding_model': {
+                    'title': 'Embedding Model',
+                    'description': 'Model used to embed the query. Must be the same as the model used for generating the document embeddings.',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'required': True,
+                    'supported-values': ['jinaai/jina-embeddings-v2-small-en'],
+                    'default': 'jinaai/jina-embeddings-v2-small-en',
+                },
+                'chromadb_collection': {
+                    'title': 'Collection',
+                    'description': 'Name of the ChromaDB collection to query.',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'required': True,
+                    'supported-values': ['curlie', 'test', 'ows'],
+                    'default': 'curlie',
+                },
                 'limit': {
                     'title': 'Limit',
                     'description': 'Limit the number of results returned from ChromaDB.',
