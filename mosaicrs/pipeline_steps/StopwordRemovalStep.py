@@ -39,60 +39,53 @@ class StopWordRemovalStep(PipelineStep):
         """
 
         handler.log(utils.get_starting_info_string(self.get_name()))
-        data_savepoint = copy.deepcopy(data)
+       
+        if self.input_column not in data.documents:
+            raise err.PipelineStepError(err.ErrorMessages.InvalidColumnName, column=self.input_column, step_name=self.get_name()) 
         
-        try:
-            if self.input_column not in data.documents:
-                raise err.InvalidColumnNameException(self.input_column)
-            
-            inputs = [entry if entry is not None else "" for entry in data.documents[self.input_column].to_list()]
+        inputs = [entry if entry is not None else "" for entry in data.documents[self.input_column].to_list()]
 
-            if self.language_column in data.documents:
-                languages = data.documents[self.language_column].to_list()
-                inputs = list(zip(inputs, languages))
-            else:
-                inputs = list(zip(inputs, ["" for _ in inputs]))
+        if self.language_column in data.documents:
+            languages = data.documents[self.language_column].to_list()
+            inputs = list(zip(inputs, languages))
+        else:
+            inputs = list(zip(inputs, ["" for _ in inputs]))
 
-            pre_processed_outputs = []
+        pre_processed_outputs = []
 
-            self.supported_stopword_sets = self.initialize_stopwords(data)
+        self.supported_stopword_sets = self.initialize_stopwords(data)
 
-            handler.update_progress(0, len(inputs))
+        handler.update_progress(0, len(inputs))
 
-            for input, language in tqdm(inputs):
-                if handler.should_cancel:
-                    break
+        for input, language in tqdm(inputs):
+            if handler.should_cancel:
+                break
 
-                input_hash = hashlib.sha1(('rule-based' + str(input)).encode()).hexdigest()
-                output = handler.get_cache(input_hash)
+            input_hash = hashlib.sha1(('rule-based' + str(input)).encode()).hexdigest()
+            output = handler.get_cache(input_hash)
 
-                if output is None:
-                    supported_language = utils.translate_language_code(language)
-                    if supported_language and supported_language in self.supported_stopword_sets:
-                        output = utils.process_data_stopword_removal(input, self.supported_stopword_sets[supported_language])                  
-                    else:
-                        output = input
-                        self.unsupported_languages.add(language)
+            if output is None:
+                supported_language = utils.translate_language_code(language)
+                if supported_language and supported_language in self.supported_stopword_sets:
+                    output = utils.process_data_stopword_removal(input, self.supported_stopword_sets[supported_language])                  
+                else:
+                    output = input
+                    self.unsupported_languages.add(language)
 
-                    handler.put_cache(input_hash, output)
+                handler.put_cache(input_hash, output)
 
-                pre_processed_outputs.append(output)
-                handler.increment_progress()
+            pre_processed_outputs.append(output)
+            handler.increment_progress()
 
-            if self.unsupported_languages:
-                handler.log(err.PipelineStepWarning(err.WarningTypes.UnsupportedLanguage, ", ".join(self.unsupported_languages)))
+        if self.unsupported_languages:
+            handler.log(err.PipelineStepWarning(err.WarningTypes.UnsupportedLanguage, ", ".join(self.unsupported_languages)))
 
-            data.documents[self.output_column] = pre_processed_outputs
-            data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
-            data.set_text_column(self.output_column)
-            
-            handler.log(utils.get_finishing_info_string(self.get_name()))
-            return data
-            
-        except Exception as exception:
-            handler.log(exception)
-            handler.log(utils.get_finishing_info_string(self.get_name(), False))
-            return data_savepoint
+        data.documents[self.output_column] = pre_processed_outputs
+        data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
+        data.set_text_column(self.output_column)
+        
+        return data
+
         
 
     @staticmethod

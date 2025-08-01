@@ -183,6 +183,7 @@ def _run_pipeline(pipeline, args):
         try:
             data = step.transform(data, handler=handler)
         except Exception as e:
+            #If we keep both outputs the exception message is two times in the log
             handler.log('{}: {}'.format(type(e).__name__, e))
             handler.log(traceback.format_exc())
             break
