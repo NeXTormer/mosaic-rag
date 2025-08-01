@@ -84,7 +84,3 @@ def get_most_current_ranking(data: PipelineIntermediate):
         ranking = data.documents["_reranking_rank_"+str(highest_reranking_id)+"_"].to_list()
 
     return ranking
-
-
-def get_starting_info_string(step_string: str):
-    return f"Starting Pipline Step: {step_string}"

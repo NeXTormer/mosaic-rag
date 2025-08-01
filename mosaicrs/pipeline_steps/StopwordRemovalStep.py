@@ -37,8 +37,6 @@ class StopWordRemovalStep(PipelineStep):
             
             It returns the modified PipelineIntermediate object.             
         """
-
-        handler.log(utils.get_starting_info_string(self.get_name()))
        
         if self.input_column not in data.documents:
             raise err.PipelineStepError(err.ErrorMessages.InvalidColumnName, column=self.input_column, step_name=self.get_name()) 
@@ -78,7 +76,9 @@ class StopWordRemovalStep(PipelineStep):
             handler.increment_progress()
 
         if self.unsupported_languages:
-            handler.log(err.PipelineStepWarning(err.WarningTypes.UnsupportedLanguage, ", ".join(self.unsupported_languages)))
+            #TODO: Statt handler.log() in handler.warning() verschieben
+            handler.log(err.PipelineStepWarning(err.WarningMessages.UnsupportedLanguage, languages = ", ".join(self.unsupported_languages), step_name=self.get_name()))
+
 
         data.documents[self.output_column] = pre_processed_outputs
         data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
