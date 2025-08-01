@@ -80,7 +80,12 @@ class MosaicDataSource(PipelineStep):
 
         handler.update_progress(0, len(df_docs))
 
-        df_docs = asyncio.run(self._fetch_all_texts(handler, df_docs))
+
+
+        if 'mainContent' in df_docs and (df_docs['mainContent'].str.len() > 0).any():
+            df_docs[self.target_column_name] = df_docs['mainContent']
+        else:
+            df_docs = asyncio.run(self._fetch_all_texts(handler, df_docs))
 
         if data.documents.empty:
             data.documents = df_docs
@@ -128,8 +133,8 @@ class MosaicDataSource(PipelineStep):
                     'enforce-limit': False,
                     'required': True,
                     'supported-values': ['http://localhost:8008', 'https://mosaic.felixholz.com', 'https://mosaic.ows.eu/service/api/'],
-                    # 'default': 'https://mosaic.ows.eu/service/api/',
-                    'default': 'https://mosaic.felixholz.com',
+                    'default': 'https://mosaic.ows.eu/service/api/',
+                    # 'default': 'https://mosaic.felixholz.com',
                 },
                 'limit': {
                     'title': 'Limit',
@@ -146,7 +151,7 @@ class MosaicDataSource(PipelineStep):
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'required': True,
-                    'supported-values': ['tech-knowledge', 'harry-potter', 'owi-snapshot-20240205-eng', 'simplewiki', 'unis-austria', 'medical-information', 'recipes', 'all'],
+                    'supported-values': ['tech-knowledge', 'harry-potter', 'owi-snapshot-20240205-eng', 'simplewiki', 'unis-austria', 'medical-information', 'recipes', 'arts2', 'all'],
                     'default': 'simplewiki',
                 },
             }

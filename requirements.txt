@@ -26,3 +26,4 @@ litellm
 openai
 gitpython
 meilisearch
+resiliparse

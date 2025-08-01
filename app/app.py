@@ -10,29 +10,18 @@ import shutil
 import logging
 from pathlib import Path
 from flask import Flask, send_from_directory, abort
-import git # GitPython library
+import git
 import nltk
 from flask import Flask
 from flask import request
-# ... other imports
-import git  # GitPython library
-import json
 import redis
 import shortuuid
-
-from flask_cors import CORS
-# ... rest of your imports
-
 import json
 
 from flask_cors import CORS
-from sentence_transformers import SentenceTransformer
 
 from app.ConversationTask import ConversationTask
 from app.PipelineTask import get_pipeline_info, PipelineTask
-from mosaicrs.pipeline_steps.ChromaDataSource import ChromaDataSource
-from mosaicrs.pipeline_steps.MosaicDataSource import MosaicDataSource
-from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 
 import os
 import ssl
@@ -55,14 +44,9 @@ nltk.download('averaged_perceptron_tagger_eng')
 #Install spacy lemmatization models with python -m spacy download fr_core_news_sm
 
 
-
-
 # --- Configuration ---
-# !!! REPLACE WITH YOUR ACTUAL GIT REPOSITORY URL !!!
 GIT_REPO_URL = "https://github.com/NeXTormer/mosaic-rag-frontend.git"
-# Directory where the git repo will be cloned locally
 LOCAL_REPO_PATH = Path("./frontend")
-# Relative path within the repo to the built web files
 FLUTTER_WEB_BUILD_DIR = Path("build/web")
 # --- End Configuration ---
 
