@@ -18,7 +18,7 @@ class PipelineStepError(Exception):
 
         self.error_msg = f"[ERROR] - "
 
-        if isinstance(message, Enum):
+        if isinstance(message, ErrorMessages):
             self.error_msg += f"[{message.value[0]}]: "
             try:
                 self.error_msg += message.value[1].format(**kwargs)
@@ -52,7 +52,7 @@ class PipelineStepWarning():
 
         self.warning_msg = f"[WARNING] - "
 
-        if isinstance(message, Enum):
+        if isinstance(message, WarningMessages):
             self.warning_msg += f"[{message.value[0]}]: "
             try:
                 self.warning_msg += message.value[1].format(**kwargs)
