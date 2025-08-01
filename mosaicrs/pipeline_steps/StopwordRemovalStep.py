@@ -1,15 +1,25 @@
+import hashlib
+import copy
+import mosaicrs.pipeline_steps.utils as utils
+import mosaicrs.pipeline.PipelineErrorHandling as err
+
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from nltk.corpus import stopwords
-import nltk
 from tqdm import tqdm
-import hashlib
-from mosaicrs.pipeline_steps.utils import translate_language_code, process_data_stopword_removal
 
 class StopWordRemovalStep(PipelineStep):
 
     def __init__(self, input_column:str, output_column:str, language_column:str = "language"):
+        """
+            Text-based pre-processing step: Removing Stopwords. Supported languages: English, German, French, Italian
+
+            input_column: str -> Column name of the PipelineIntermediate column used as the input for this step.\n
+            output_column: str -> The name of the column where the cleaned results of this pipeline step should be stored in the PipelineIntermediate.\n
+            language_column: str -> The column containing the language ISO 639 Set3 language code. Is needed for stemming and stopword removable. Default: 'language'
+        """
+
         self.input_column = input_column
         self.output_column = output_column
         self.language_column = language_column
@@ -17,73 +27,73 @@ class StopWordRemovalStep(PipelineStep):
         self.supported_stopword_sets = {}
         self.unsupported_languages = set()
 
+
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
-         
+        """
+            The 'transform()' method is the core function of each pipeline step. It applies the specific modifications to the 'PipelineIntermediate' object for that step. 
+            
+            data: PipelineIntermediate -> Object which holds the current data, its metadata and the history of intermediate results.\n
+            handler: PipelineStepHandler -> Object is responsible for everything related to caching, updating the progress bar/status and logging additional information.
+            
+            It returns the modified PipelineIntermediate object.             
+        """
+
+        handler.log(utils.get_starting_info_string(self.get_name()))
+        data_savepoint = copy.deepcopy(data)
+        
         try:
-            pass
-        except Exception as e:
-            pass
+            if self.input_column not in data.documents:
+                raise err.InvalidColumnNameException(self.input_column)
+            
+            inputs = [entry if entry is not None else "" for entry in data.documents[self.input_column].to_list()]
 
-        if self.input_column not in data.documents:
-            handler.log(f"StopwordRemoval - InputColumn: {self.input_column} not in the PipelineIntermediate DataFrame.")
+            if self.language_column in data.documents:
+                languages = data.documents[self.language_column].to_list()
+                inputs = list(zip(inputs, languages))
+            else:
+                inputs = list(zip(inputs, ["" for _ in inputs]))
+
+            pre_processed_outputs = []
+
+            self.supported_stopword_sets = self.initialize_stopwords(data)
+
+            handler.update_progress(0, len(inputs))
+
+            for input, language in tqdm(inputs):
+                if handler.should_cancel:
+                    break
+
+                input_hash = hashlib.sha1(('rule-based' + str(input)).encode()).hexdigest()
+                output = handler.get_cache(input_hash)
+
+                if output is None:
+                    supported_language = utils.translate_language_code(language)
+                    if supported_language and supported_language in self.supported_stopword_sets:
+                        output = utils.process_data_stopword_removal(input, self.supported_stopword_sets[supported_language])                  
+                    else:
+                        output = input
+                        self.unsupported_languages.add(language)
+
+                    handler.put_cache(input_hash, output)
+
+                pre_processed_outputs.append(output)
+                handler.increment_progress()
+
+            if self.unsupported_languages:
+                handler.log(err.PipelineStepWarning(err.WarningTypes.UnsupportedLanguage, ", ".join(self.unsupported_languages)))
+
+            data.documents[self.output_column] = pre_processed_outputs
+            data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
+            data.set_text_column(self.output_column)
+            
+            handler.log(utils.get_finishing_info_string(self.get_name()))
             return data
+            
+        except Exception as exception:
+            handler.log(exception)
+            handler.log(utils.get_finishing_info_string(self.get_name(), False))
+            return data_savepoint
         
-        inputs = [entry if entry is not None else "" for entry in data.documents[self.input_column].to_list()]
-        if self.language_column in data.documents:
-            languages = data.documents[self.language_column].to_list()
-            inputs = list(zip(inputs, languages))
-        else:
-            inputs = list(zip(inputs, ["" for _ in inputs]))
-
-        pre_processed_outputs = []
-
-        self.supported_stopword_sets = self.initialize_stopwords(data)
-
-        handler.update_progress(0, len(inputs))
-
-        for input, language in tqdm(inputs):
-            if handler.should_cancel:
-                break
-
-            input_hash = hashlib.sha1(('rule-based' + str(input)).encode()).hexdigest()
-            output = handler.get_cache(input_hash)
-
-            if output is None:
-                supported_language = translate_language_code(language)
-                if supported_language and supported_language in self.supported_stopword_sets:
-                    output = process_data_stopword_removal(input, self.supported_stopword_sets[supported_language])                  
-                else:
-                    output = input
-                    self.unsupported_languages.add(language)
-
-                handler.put_cache(input_hash, output)
-
-            pre_processed_outputs.append(output)
-            handler.increment_progress()
-
-        if self.unsupported_languages:
-            unsupported_lanuages_string = ", ".join(self.unsupported_languages)
-            handler.log(f"Languages: {unsupported_lanuages_string} are not supported for stopword removal.")
-
-        data.documents[self.output_column] = pre_processed_outputs
-        data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
-        data.set_text_column(self.output_column)
-
-        handler.log("TEST1234")
-        
-
-        return data
-
-    def initialize_stopwords(self, data):
-        requiried_languages = data.documents[self.language_column].value_counts().to_dict()
-        supported_stopword_sets = {}
-        for k, _ in requiried_languages.items():
-            language_name = translate_language_code(k)
-            if language_name:
-                supported_stopword_sets[language_name] = set(stopwords.words(language_name))
-
-        return supported_stopword_sets
-
 
     @staticmethod
     def get_info() -> dict:
@@ -94,7 +104,7 @@ class StopWordRemovalStep(PipelineStep):
             "parameters": {
                 'input_column': {
                     'title': 'Input column name',
-                    'description': 'The pre-processing steps will be performed on this column.',
+                    'description': 'Column name of the PipelineIntermediate column used as the input for this step.',
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'required': True,
@@ -103,7 +113,7 @@ class StopWordRemovalStep(PipelineStep):
                 },
                 'output_column': {
                     'title': 'Output column name',
-                    'description': 'The pre-processed text will be put into this column.',
+                    'description': 'The name of the column where the cleaned results of this pipeline step should be stored in the PipelineIntermediate. ',
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'required': True,
@@ -122,6 +132,26 @@ class StopWordRemovalStep(PipelineStep):
             }
         }
 
+
     @staticmethod
     def get_name() -> str:
         return "Stopword Remover"
+    
+
+    def initialize_stopwords(self, data: PipelineIntermediate):
+        """
+            Initializes a disctionary of all currently supported stopword lists which are needed by the given PipelineIntermediate.
+
+            data: PipelineIntermediate -> Given the documents in the current state of the PipelineIntermediate, all needed languages which are currently supported are considered. 
+
+            It returns a dictionary containing the stopword lists of all supported languages. As a key the language names are used and the values are then the respective sets of stopwords per language. 
+        """
+        
+        requiried_languages = data.documents[self.language_column].value_counts().to_dict()
+        supported_stopword_sets = {}
+        for k, _ in requiried_languages.items():
+            language_name = utils.translate_language_code(k)
+            if language_name:
+                supported_stopword_sets[language_name] = set(stopwords.words(language_name))
+
+        return supported_stopword_sets

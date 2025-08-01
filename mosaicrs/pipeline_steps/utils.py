@@ -5,7 +5,6 @@ import contractions
 import numpy as np
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 import regex as re
-from enum import Enum
 
 def translate_language_code(language_code:str):
     language_dict = {
@@ -86,6 +85,9 @@ def get_most_current_ranking(data: PipelineIntermediate):
 
     return ranking
 
-class ErrorClasses(Enum):
-    Invalid_Column_Name = "INVALID COLUMN NAME"
 
+def get_starting_info_string(step_string: str):
+    return f"Starting Pipline Step: {step_string}"
+
+def get_finishing_info_string(step_string: str, success: bool = True):
+    return f"Step: {step_string} has sucessfully finished." if success else f"Step: {step_string} has NOT sucessfully finished. The starting PipelineIntermediate of this step is used for the next step!"
