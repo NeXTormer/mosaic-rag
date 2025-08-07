@@ -134,7 +134,6 @@ class MosaicDataSource(PipelineStep):
                     'required': True,
                     'supported-values': ['http://localhost:8008', 'https://mosaic.felixholz.com', 'https://mosaic.ows.eu/service/api/'],
                     'default': 'https://mosaic.ows.eu/service/api/',
-                    # 'default': 'https://mosaic.felixholz.com',
                 },
                 'limit': {
                     'title': 'Limit',

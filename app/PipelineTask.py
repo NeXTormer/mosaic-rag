@@ -7,6 +7,7 @@ import traceback
 
 import pandas as pd
 
+from mosaicrs.pipeline.PipelineErrorHandling import PipelineStepError
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.ChromaDataSource import ChromaDataSource
@@ -94,12 +95,9 @@ class PipelineTask:
             'current_step_index': self.thread_args['current_step_index'],
             'pipeline_progress': self.thread_args['pipeline_progress'],
             'pipeline_percentage': self.thread_args['pipeline_percentage'],
+            'pipeline_error': self.thread_args['pipeline_error'],
             'log': [],
-            'step_output': {
-                '1': {
-                    'log': 'Getting 1000 documents',
-                }
-            }
+            'warnings': [],
         }
         progress.update(self.pipeline_handler.get_status())
 
@@ -150,6 +148,7 @@ def _run_pipeline(pipeline, args):
 
     args['current_step'] = 'Starting...'
     args['step_progress'] = ''
+    args['pipeline_error'] = ''
     args['step_percentage'] = 0
     args['pipeline_progress'] = str(current_step_index) + '/' + str(total_steps)
     args['pipeline_percentage'] = 0
@@ -164,6 +163,8 @@ def _run_pipeline(pipeline, args):
     keys = sorted([int(x) for x in steps.keys()])
 
     data = PipelineIntermediate(query=query, arguments=parameters)
+
+    pipeline_error_occured = False
 
     for key in keys:
         step_id = steps[str(key)]['id']
@@ -182,10 +183,17 @@ def _run_pipeline(pipeline, args):
         handler.reset(step_id)
         try:
             data = step.transform(data, handler=handler)
+        except PipelineStepError as e:
+            print(e)
+            args['pipeline_error'] = str(e)
+            pipeline_error_occured = True
+            break
+
         except Exception as e:
-            #If we keep both outputs the exception message is two times in the log
-            handler.log('{}: {}'.format(type(e).__name__, e))
-            handler.log(traceback.format_exc())
+            print("OTHER EXCEPTION: ")
+            print(e)
+            args['pipeline_error'] = str(e)
+            pipeline_error_occured = True
             break
 
         current_step_index += 1
@@ -202,6 +210,10 @@ def _run_pipeline(pipeline, args):
 
     args['elapsed_time'] = _end_time - _start_time
     args['cache_hit_ratio'] = handler.get_cache_hit_ratio()
+
+    #TODO: make better
+    if pipeline_error_occured:
+        data = PipelineIntermediate(query=query, arguments=parameters)
 
     args['intermediate_data'] = data
     args['has_finished'] = True

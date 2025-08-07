@@ -3,6 +3,8 @@ import redis
 import os
 import datetime
 
+from mosaicrs.pipeline.PipelineErrorHandling import PipelineStepWarning
+
 
 class PipelineStepHandler:
 
@@ -21,6 +23,11 @@ class PipelineStepHandler:
 
         self.logs = []
         self.logs_lock = Lock()
+
+        self.warnings = []
+        self.warnings_lock = Lock()
+
+        self.error = (0, '')
 
 
         redis_host = os.environ.get('REDIS_HOST', 'localhost')
@@ -61,6 +68,10 @@ class PipelineStepHandler:
 
         with self.logs_lock:
             data['log'] = self.logs
+
+        with self.warnings_lock:
+            data['warnings'] = self.warnings
+
 
         return data
 
@@ -104,6 +115,11 @@ class PipelineStepHandler:
             msg = '{}: {}'.format(datetime.datetime.now().time(), message)
             self.logs.append(msg)
             print(msg)
+
+    def warning(self, warning: PipelineStepWarning):
+        with self.warnings_lock:
+            self.warnings.append(warning.warning_msg)
+            print(f'[WARNING] in {self.step_id}' + warning.warning_msg)
 
 
     def get_cache_hit_ratio(self):
