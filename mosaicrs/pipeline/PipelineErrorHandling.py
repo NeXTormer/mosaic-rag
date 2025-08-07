@@ -8,7 +8,7 @@ def extractPlaceholders(error_template: str):
 #--------------------------------_Exceptions--------------------------------------------
 
 class ErrorMessages(Enum):
-    InvalidColumnName = ("INVALID COLUMN NAME", "The column '{column}' is not present in the current state of the PipelineIntermediate at the step '{step_name}'!")
+    InvalidColumnName = ("INVALID COLUMN NAME", "The column '{column}' is not present in the current state of the PipelineIntermediate!")
 
 
 class PipelineStepError(Exception):
@@ -41,7 +41,7 @@ class PipelineStepError(Exception):
 #--------------------------------Warnings---------------------------------------------
 
 class WarningMessages(Enum):
-    UnsupportedLanguage = ("UNSUPPORTED LANGUAGES", "The following languages are currently not supported by the pipeline step '{step_name}': {languages}.")
+    UnsupportedLanguage = ("UNSUPPORTED LANGUAGES", "The following languages are currently not supported: {languages}.")
     Test = ("TEST", "TESTSTRING")
 
 
