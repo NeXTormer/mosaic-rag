@@ -15,22 +15,76 @@ This is mosaicRAG, a retrieval system and retrieval augmented generation library
 - [Documentation of available pipeline steps](#pipeline-steps)
 
 ## Building and running
+The frontend is automatically bundled with the mosaicRAG instance. 
+Access it by going to the root directory of the server in your browser.
 
 ### Docker image (recommended)
 
 We publish and maintain a docker image for the mosaicRAG service.
 This is the recommended way to deploy the service for production use.
-MosaicRAG exposes the API (see documentation) and the mosaicRAG Frontend interface.
+MosaicRAG exposes the API (see documentation) and the mosaicRAG Frontend interface on port 5000.
+Use the docker's port mapping feature to re-map the port to your desired port.
+
+We offer two versions of the docker image: 
+`mosaicrag:latest` and `mosaicrag:latest-x86`.
+`mosaicrag:latest` is built for arm64 architecture and `mosaicrag:latest-x86` is built for x86 architecture.
+
+#### For testing
+For testing you can run the image directly with `docker run`.
 
 **For ARM64:**
 ```shell
-docker run -p 80:5000 --name mosaicrag -d git.felixholz.com/mosaicrs:latest
+docker run -p 80:5000 --name mosaicrag -d git.felixholz.com/mosaicrag:latest
 ```
 
 **For AMD64:**
 ```shell
-docker run -p 80:5000 --name mosaicrag -d git.felixholz.com/mosaicrs-x64:latest
+docker run -p 80:5000 --name mosaicrag -d git.felixholz.com/mosaicrag:latest-x86
 ```
+
+#### Running in production
+For running mosaicRAG in production we advise you to use docker compose. 
+Docker compose automatically manages other services, such as redis or an LLM.
+Additionally, using docker compose makes it easy to specify environment variables. 
+Have a look at the root of this repository for an example `docker-compose.yml` file.
+
+
+**Running the service**
+After setting up the `docker-compose.yml` file, use the following command to start the service:
+
+```shell
+docker-compose up -d
+```
+
+**Updating the service**
+The frontend automatically gets updated when the mosaicRAG server starts, so restarting the server updates the frontend to the latest version.
+For mosaicRAG itself, use the following commands to update a running instance:
+
+```shell
+docker-compose down
+docker-compose pull
+docker-compose up -d  
+```
+
+
+
+
+
+#### Environment Variables
+
+| Variable | Description | Default Value | Example |
+| -------- | ------- | ------------ | ------- |
+| `REDIS_HOST` | Specifies the hostname or IP address of the Redis instance. | None | `REDIS_HOST=172.17.0.1` |
+| `COLOR_THEME` | Defines the visual color scheme of the application's UI. | orange-dark | `COLOR_THEME=blue-dark` |
+| `APP_TITLE` | Sets the primary title displayed at the top of the application. | mosaicRAG | `APP_TITLE="My RAG App"` |
+| `APP_SUBTITLE` | Sets the subtitle displayed beneath the main title. | the version and build number of the frontend | `APP_SUBTITLE="an OpenWebSearch.eu Project"` |
+| `APP_PIPELINE_CONFIG_ALLOWED` | Boolean (true/false) that controls if users can configure the data pipeline from the UI. | true | `APP_PIPELINE_CONFIG_ALLOWED=false` |
+| `APP_LOGS_ALLOWED` | Boolean (true/false) that determines if application logs are accessible in the UI. | true | `APP_LOGS_ALLOWED=false` |
+| `APP_DEFAULT_PIPELINE` | A JSON string that defines the default pipeline configuration. | {"1": {"id": "mosaic_datasource", ...}} | `APP_DEFAULT_PIPELINE='{"1": ...}'` |
+| `APP_ABOUT_LINK_TITLE` | Sets the display text for the "About" link. | About MOSAIC | `APP_ABOUT_LINK_TITLE="Learn More"` |
+| `APP_ABOUT_LINK_URL` | Sets the destination URL for the "About" link. | https://mosaic.ows.eu/ | `APP_ABOUT_LINK_URL="https://mycompany.com" `|
+
+
 
 ### Local using flask
 MosaicRAG uses Flask as the webserver. 
@@ -212,6 +266,7 @@ name of the step.
 
 ## PipelineIntermediate
 The PipelineIntermediate object serves as the primary means of communication between pipeline steps. Each step in the pipeline receives a PipelineIntermediate object as input and returns the altered one as output. This object consists of three main components:
+
 | Name | Description |
 |--|--|
 | Documents | This DataFrame contains the current data as modified by the most recent pipeline step, along with individual ranking scores, ranks, and additional metadata such as IDs and URLs.

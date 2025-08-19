@@ -26,7 +26,7 @@ class PipelineStepError(Exception):
                 required_keys = extractPlaceholders(message.value[1])
                 provided_keys = kwargs.keys()
                 missing_key_params = set(required_keys) - set(provided_keys)
-                self.error_msg += "[INCOMPLETE EXCEPTION OUTPUT] " + message.value[1] + f" Missing keys for exception output: {", ".join(missing_key_params)}"
+                self.error_msg += f'[INCOMPLETE EXCEPTION OUTPUT] {message.value[1]} Missing keys for exception output: {", ".join(missing_key_params)}'
         elif isinstance(message, str):
             self.error_msg += message
         else:
@@ -60,7 +60,7 @@ class PipelineStepWarning():
                 required_keys = extractPlaceholders(message.value[1])
                 provided_keys = kwargs.keys()
                 missing_key_params = set(required_keys) - set(provided_keys)
-                self.warning_msg += "[INCOMPLETE WARNING OUTPUT] " + message.value[1] + f" Missing keys for warning output: {", ".join(missing_key_params)}"
+                self.warning_msg += f'[INCOMPLETE WARNING OUTPUT] {message.value[1]} Missing keys for warning output: {", ".join(missing_key_params)}'
         elif isinstance(message, str):
             self.warning_msg += message
         else:

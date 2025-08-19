@@ -96,6 +96,7 @@ class PipelineTask:
             'pipeline_progress': self.thread_args['pipeline_progress'],
             'pipeline_percentage': self.thread_args['pipeline_percentage'],
             'pipeline_error': self.thread_args['pipeline_error'],
+            'pipeline_error_index': self.thread_args['pipeline_error_index'],
             'log': [],
             'warnings': [],
         }
@@ -149,6 +150,7 @@ def _run_pipeline(pipeline, args):
     args['current_step'] = 'Starting...'
     args['step_progress'] = ''
     args['pipeline_error'] = ''
+    args['pipeline_error_index'] = 0
     args['step_percentage'] = 0
     args['pipeline_progress'] = str(current_step_index) + '/' + str(total_steps)
     args['pipeline_percentage'] = 0
@@ -186,6 +188,7 @@ def _run_pipeline(pipeline, args):
         except PipelineStepError as e:
             print(e)
             args['pipeline_error'] = str(e)
+            args['pipeline_error_index'] = key
             pipeline_error_occured = True
             break
 
@@ -193,6 +196,7 @@ def _run_pipeline(pipeline, args):
             print("OTHER EXCEPTION: ")
             print(e)
             args['pipeline_error'] = str(e)
+            args['pipeline_error_index'] = key
             pipeline_error_occured = True
             break
 
