@@ -1,17 +1,25 @@
 import pandas as pd
+import regex as re
+import numpy as np
+import mosaicrs.pipeline.PipelineErrorHandling as err
+
 from mosaicrs.llm.LiteLLMLLMInterface import LiteLLMLLMInterface
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
-import regex as re
-import numpy as np
-
 from mosaicrs.pipeline_steps.utils import get_most_current_ranking
 
 class TournamentStyleLLMRerankerStep(PipelineStep):
 
     def __init__(self, input_column: str, query: str = None,
                  model: str = 'gemma2'):
+        """
+            Initialize the TournamentStyleLLMRerankerStep.
+
+            input_column: str -> Name of the column containing text documents to rerank.
+            query: str -> An optional query to guide the reranking. Defaults to None.
+            model: str -> The LLM model to use for comparisons. Defaults to 'gemma2'.
+        """
 
         if model not in LiteLLMLLMInterface.supported_models:
             self.llm = None
@@ -32,12 +40,22 @@ class TournamentStyleLLMRerankerStep(PipelineStep):
             self.query = None
             self.use_new_query = False
 
+
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()):
+        """
+            The 'transform()' method is the core function of each pipeline step. It applies the specific modifications to the 'PipelineIntermediate' object for that step. Perform the tournament-style reranking on the documents.
+            
+            data: PipelineIntermediate -> Object which holds the current data, its metadata and the history of intermediate results.\n
+            handler: PipelineStepHandler -> Object is responsible for everything related to caching, updating the progress bar/status and logging additional information.
+            
+            It returns the modified PipelineIntermediate object.             
+        """
+
         if self.llm is None:
-            handler.log(f"Model: {self.model} is not supported for the {TournamentStyleLLMRerankerStep.get_name}.")
-            return data
+            raise err.PipelineStepError(err.ErrorMessages.InvalidModelName, model=self.model)
         
-        handler.log("Reranking using Tournament Style LLM-Reranker")
+        if self.source_column_name not in data.documents:
+            raise err.PipelineStepError(err.ErrorMessages.InvalidColumnName, column=self.source_column_name)
 
         current_ranking = get_most_current_ranking(data)
         full_texts = [entry if entry is not None else "" for entry in data.documents[self.source_column_name].to_list()]
@@ -96,6 +114,17 @@ class TournamentStyleLLMRerankerStep(PipelineStep):
         return data
 
     def llm_1_on_1_comparison(self, doc1:str, doc2:str, query:str, handler: PipelineStepHandler):
+        """
+            Compare two documents using the LLM to determine which is more relevant to the query.
+
+            doc1: str -> The first document text.
+            doc2: str -> The second document text.
+            query: str -> The query for relevance comparison.
+            handler: PipelineStepHandler -> Handler for logging and progress.
+
+            Returns an integer: 1 if the first document is more relevant, 2 if the second is more relevant.
+        """
+        
         timeout_max = 3
         prompt=f"Here are two texts, each marked with a [1] or [2] at the beginning. Which of the two following texts is more relevant to the Query:'{query}'. Only answer '[1]' if the first text is more relevant or '[2]' if the second one is more relevent!\n\n[1]: {doc1} \n\n[2]: {doc2}"
         for _ in range(timeout_max):

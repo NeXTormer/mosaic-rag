@@ -9,7 +9,9 @@ def extractPlaceholders(error_template: str):
 
 class ErrorMessages(Enum):
     InvalidColumnName = ("INVALID COLUMN NAME", "The column '{column}' is not present in the current state of the PipelineIntermediate!")
-
+    InvalidRankingColumn = ("INVALID RANKING COLUMN", "The ranking column '{ranking_column}' does not exist in the current pipeline intermediate.\nThe following ranking columns exist: {given_columns}")
+    InvalidCoordinates = ("INVALID COORDINATE FORMAT", "The following fields have invalid values: {invalid_value_names}. The fields should only contain numerical chars seperated by a single '.'.")
+    InvalidModelName = ("INVALID MODEL NAME", "Model: {model} is not supported.")
 
 class PipelineStepError(Exception):
     def __init__(self, message, **kwargs):
@@ -42,8 +44,9 @@ class PipelineStepError(Exception):
 
 class WarningMessages(Enum):
     UnsupportedLanguage = ("UNSUPPORTED LANGUAGES", "The following languages are currently not supported: {languages}.")
-    Test = ("TEST", "TESTSTRING")
-
+    TooLargeKValue = ("K-VALUE TOO LARGE", "The selected number of remaining rows after reduction is larger than the current result set. The number of remaining results is therefore set to the overall number of existing results (k={k}).")
+    SentimentPredictionNotPossible = ("SENITMENT PREDICTION NOT POSSIBLE" , "The sentiment prediction with the model '{model}' failed with the exception '{exception_name}'. The input string was: {input}")
+    MetricDoesNotExist = ("METRIC DOES NOT EXIST", "The selected metric does not exist, therefore we use Cosine Similarity per default.")
 
 class PipelineStepWarning():
     def __init__(self, message, **kwargs):

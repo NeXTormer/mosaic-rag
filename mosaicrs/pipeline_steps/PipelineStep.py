@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
-
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
-
 
 class PipelineStep(ABC):
 

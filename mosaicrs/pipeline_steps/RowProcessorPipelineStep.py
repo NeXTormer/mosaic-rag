@@ -1,9 +1,8 @@
 import hashlib
+
 from abc import abstractmethod
 from typing import Optional
-
 from tqdm import tqdm
-
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
@@ -12,19 +11,34 @@ from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 class RowProcessorPipelineStep(PipelineStep):
 
     def __init__(self, input_column: str, output_column: str):
+        """
+            RowprocessorPipelineStep implements the PipelineStep interface but serves as a specialized base class meant to be extended by other pipeline steps. It overrides the `transform` method from PipelineStep and introduces a new abstract method 'transform_row()' that must be implemented by any subclass deriving from it.
+        
+            input_column: str -> Column name of the PipelineIntermediate column used as the input for this step.\n
+            output_column: str -> The name of the column where the individual results should be stored in the PipelineIntermediate.
+        """
+
         super().__init__()
         self.input_column = input_column
         self.output_column = output_column
 
 
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler) -> PipelineIntermediate:
+        """
+            The 'transform()' method is the core function of each pipeline step. It applies the specific modifications to the 'PipelineIntermediate' object for that step. 
+            
+            data: PipelineIntermediate -> Object which holds the current data, its metadata and the history of intermediate results.\n
+            handler: PipelineStepHandler -> Object is responsible for everything related to caching, updating the progress bar/status and logging additional information.
+            
+            It returns the modified PipelineIntermediate object.             
+        """
+         
         inputs = [entry if entry is not None else "" for entry in data.documents[self.input_column].to_list()]
         outputs = []
         column_type = None
 
         handler.update_progress(0, len(inputs))
 
-        # TODO: implement multithreading
         for input in tqdm(inputs):
             if handler.should_cancel:
                 break

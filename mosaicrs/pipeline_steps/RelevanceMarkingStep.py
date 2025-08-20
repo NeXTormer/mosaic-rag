@@ -1,13 +1,23 @@
+import regex as re
+import mosaicrs.pipeline.PipelineErrorHandling as err
+
 from mosaicrs.llm.LiteLLMLLMInterface import LiteLLMLLMInterface
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
-import regex as re
 from difflib import SequenceMatcher
 
 class RelevanceMarkingStep(PipelineStep):
 
     def __init__(self, input_column: str, output_column: str, query: str = None, model: str = 'gemma2'):
+        """
+            Initialize the relevance marking step with input/output columns, an optional custom query, and the LLM model. A pipeline step that uses an LLM to highlight the most relevant passages in a text column based on a given query. Relevant segments are marked by surrounding them with double asterisks (**).
+
+            input_column (str): Column containing the source text.
+            output_column (str): Column where highlighted text will be stored.
+            query (str, optional): Custom query for relevance marking. If None, the pipelines global query is used. Defaults to None.
+            model (str, optional): LLM model name (must be supported by LiteLLMLLMInterface). Defaults to 'gemma2'.
+        """
 
         if model not in LiteLLMLLMInterface.supported_models:
             self.llm = None
@@ -35,11 +45,20 @@ class RelevanceMarkingStep(PipelineStep):
 
         
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()):
-        if self.llm is None:
-            handler.log(f"Model: {self.model} is not supported for the {RelevanceMarkingStep.get_name}.")
-            return data
+        """
+            The 'transform()' method is the core function of each pipeline step. It applies the specific modifications to the 'PipelineIntermediate' object for that step.  Apply the relevance marking step to the pipeline data.
+            
+            data: PipelineIntermediate -> Object which holds the current data, its metadata and the history of intermediate results.\n
+            handler: PipelineStepHandler -> Object is responsible for everything related to caching, updating the progress bar/status and logging additional information.
+            
+            It returns the modified PipelineIntermediate object.             
+        """
         
-        handler.log("Highlighting relevant text passages")
+        if self.llm is None:
+            raise err.PipelineStepError(err.ErrorMessages.InvalidModelName, model=self.model)
+        
+        if self.source_column_name not in data.documents:
+            raise err.PipelineStepError(err.ErrorMessages.InvalidColumnName, column=self.source_column_name)
 
         full_texts = [entry if entry is not None else "" for entry in data.documents[self.source_column_name].to_list()]
 
@@ -53,7 +72,7 @@ class RelevanceMarkingStep(PipelineStep):
             highlighted_text = ""
             
             while not valid_output:
-                prompt = self.createPrompt(self.query if self.use_new_query else data.query, text, highlighted_text, handler)
+                prompt = self.createPrompt(self.query if self.use_new_query else data.query, text, highlighted_text)
                 potential_answer = self.llm.generate(prompt=prompt)
 
                 valid_output, highlighted_text = self.checkAnswerValidity(potential_answer,text)
@@ -113,11 +132,17 @@ class RelevanceMarkingStep(PipelineStep):
             }
         }
 
+
     @staticmethod
     def get_name() -> str:
         return "Marking Relevance"
     
+
     def getSystemPromptWithExample(self) -> str:
+        """
+            Returns the system prompt with rules and an example for the LLM.
+        """
+
         return f"""You are an assistant designed to identify and highlight the most relevant text passages in a given input text based on a specific query. Your task is to highlight the most important passages by surrounding them with two asterisks (**).
         You have to follow a given ruleset:\n
         {self.getRules()}\n
@@ -131,7 +156,17 @@ class RelevanceMarkingStep(PipelineStep):
         [ANSWER] **Lego is a popular construction toy made up of interlocking plastic bricks** that allow for endless creativity. It was invented in Denmark in 1932 and has since become a global phenomenon. From simple house builds to intricate models of famous landmarks, Lego sets appeal to both children and adults. Beyond play, **Lego also inspires learning in areas like engineering, design, and storytelling.**"""
 
     
-    def createPrompt(self, query, input, answer, handler) -> str:
+    def createPrompt(self, query, input, answer) -> str:
+        """
+            Create the prompt for the LLM, optionally adding a new rule if the previous answer violated the ruleset.
+
+            query (str): Query guiding the relevance marking.
+            input (str): The source text to highlight.
+            answer (str): The last LLM output (used if invalid).
+
+            Returns the constructed prompt string.
+        """
+
         prompt = f"""[QUERY] {query}\n[TEXT_START] {input}  [TEXT_END]\n\n"""
         if not answer == "":
             addional_prompt = f"""The following answer does not comply with the ruleset. First, I will provide you with the rules, which are enclosed between [RULES_START] and [RULES_END].  
@@ -145,11 +180,13 @@ class RelevanceMarkingStep(PipelineStep):
             rule = self.problem_llm.generate(addional_prompt)
             prompt = f"Additional rule for the ruleset: -) {rule}\n\n" + prompt
 
-            handler.log("Additional rule created: " + rule)
-
         return prompt
     
     def getRules(self) -> str:
+        """
+            Return the ruleset that the LLM must follow when highlighting text.
+        """
+
         return """"
         -) You must not delete or modify any part of the original input text.\n
         -) You may highlight one or multiple passages as needed.\n
@@ -158,6 +195,17 @@ class RelevanceMarkingStep(PipelineStep):
 
 
     def checkAnswerValidity(self, potential_answer, input_text) -> str:
+        """
+            Validate the LLMs output to ensure compliance with the expected format and similarity to the original text.
+
+            potential_answer (str): The raw LLM output.
+            input_text (str): The original input text for comparison.
+
+            Returns: tuple[bool, str]: 
+                - True and the cleaned highlighted text if valid.
+                - False and the original answer if invalid.
+        """
+
         match = re.match(r"\[ANSWER\]((.*\n*)+)",potential_answer)
         if match is None:
             return False, potential_answer
@@ -165,12 +213,7 @@ class RelevanceMarkingStep(PipelineStep):
         altered_input = "[ANSWER] " + input_text
 
         similarity = SequenceMatcher(None, potential_answer, altered_input).quick_ratio()
-
-        #print(similarity)
-        #print(potential_answer)
-
         answer = re.sub(r"^\[ANSWER\]\s*", "", potential_answer)
-        #print(answer)
 
         if similarity < self.similarity_threshold:
             return False, potential_answer

@@ -1,4 +1,6 @@
 import pandas as pd
+import mosaicrs.pipeline.PipelineErrorHandling as err
+
 from tqdm import tqdm
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
@@ -8,7 +10,17 @@ from enum import Enum
 class GeoDataFilteringStep(PipelineStep):
 
     def __init__(self, latitude_value_p1: str, longitude_value_p1: str, latitude_value_p2: str, longitude_value_p2: str, latitude_column_name: str = "latitude", longitude_column_name: str = "longitude"):
-        
+        """
+            Initialize the filtering step with two coordinate points and optional latitude/longitude column names. A pipeline step that filters documents based on geographic coordinates. Given two latitude/longitude points, this step constructs a bounding rectangle and keeps only the documents whose latitude and longitude values fall within that rectangle.
+
+            latitude_value_p1 (str): Latitude value of the first point.
+            longitude_value_p1 (str): Longitude value of the first point.
+            latitude_value_p2 (str): Latitude value of the second point.
+            longitude_value_p2 (str): Longitude value of the second point.
+            latitude_column_name (str): Name of the latitude column in the documents.
+            longitude_column_name (str): Name of the longitude column in the documents.
+        """
+
         self.invalid_value_names = []
         self.latitude_P1 = self.checkInputValue(latitude_value_p1, "Latitude Point 1")
         self.longitude_P1 = self.checkInputValue(longitude_value_p1, "Longitude Point 1")
@@ -18,15 +30,25 @@ class GeoDataFilteringStep(PipelineStep):
         self.latitude_column_name = latitude_column_name
         self.longitude_column_name = longitude_column_name
 
+
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()):
+        """
+            The 'transform()' method is the core function of each pipeline step. It applies the specific modifications to the 'PipelineIntermediate' object for that step. Apply geographic filtering to the pipeline's documents.
+            
+            data: PipelineIntermediate -> Object which holds the current data, its metadata and the history of intermediate results.\n
+            handler: PipelineStepHandler -> Object is responsible for everything related to caching, updating the progress bar/status and logging additional information.
+            
+            It returns the modified PipelineIntermediate object.             
+        """
+        
         if len(self.invalid_value_names) > 0:
-            handler.log(f"The following fields have invalid values: {self.invalid_value_names}. The fields should only contain numerical chars seperated by a single '.'. For all invalid fields we take the default value of 0.0.")
+            raise err.PipelineStepError(err.ErrorMessages.InvalidCoordinates, invalid_value_names=", ".join(self.invalid_value_names))
 
         if self.latitude_column_name not in data.documents:
-            handler.log(f"The column {self.latitude_column_name} does not exist in the PipelineIntermediate.")
+            raise err.PipelineStepError(err.ErrorMessages.InvalidColumnName, column=self.latitude_column_name)
 
         if self.longitude_column_name not in data.documents:
-            handler.log(f"The column {self.longitude_column_name} does not exist in the PipelineIntermediate.")
+            raise err.PipelineStepError(err.ErrorMessages.InvalidColumnName, column=self.longitude_column_name)
 
         indicator_list = []
         value_list = list(zip(data.documents[self.latitude_column_name].fillna("0.0").to_list(), data.documents[self.longitude_column_name].fillna("0.0").to_list()))
@@ -53,6 +75,7 @@ class GeoDataFilteringStep(PipelineStep):
         data.documents = data.documents[[bool(x) for x in indicator_list]]
         data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
         return data
+
 
     @staticmethod
     def get_info() -> dict:
@@ -108,11 +131,22 @@ class GeoDataFilteringStep(PipelineStep):
             }
         }
 
+
     @staticmethod
     def get_name() -> str:
         return "Geo Data Filtering"
     
+
     def checkInputValue(self, value_string, value_name):
+        """
+            Validate and convert an input string to a float. If the value is invalid, append its name to `invalid_value_names` and return 0.0 as a default.
+
+            value_string (str): The input value to check.
+            value_name (str): The name of the parameter for error logging.
+
+            Returns a parsed float value, or 0.0 if invalid.
+        """
+
         if value_string.strip().isdigit():
             return float(value_string.strip())
         else:

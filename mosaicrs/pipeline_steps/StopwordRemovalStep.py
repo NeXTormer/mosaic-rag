@@ -3,6 +3,7 @@ import copy
 import mosaicrs.pipeline_steps.utils as utils
 import mosaicrs.pipeline.PipelineErrorHandling as err
 
+from nltk.tokenize import word_tokenize
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
@@ -37,6 +38,7 @@ class StopWordRemovalStep(PipelineStep):
             
             It returns the modified PipelineIntermediate object.             
         """
+
         if self.input_column not in data.documents:
             raise err.PipelineStepError(err.ErrorMessages.InvalidColumnName, column=self.input_column)
 
@@ -65,7 +67,7 @@ class StopWordRemovalStep(PipelineStep):
             if output is None:
                 supported_language = utils.translate_language_code(language)
                 if supported_language and supported_language in self.supported_stopword_sets:
-                    output = utils.process_data_stopword_removal(input, self.supported_stopword_sets[supported_language])                  
+                    output = self.process_data_stopword_removal(input, self.supported_stopword_sets[supported_language])                  
                 else:
                     output = input
                     self.unsupported_languages.add(language)
@@ -78,14 +80,12 @@ class StopWordRemovalStep(PipelineStep):
         if self.unsupported_languages:
             handler.warning(err.PipelineStepWarning(err.WarningMessages.UnsupportedLanguage, languages = ", ".join(self.unsupported_languages)))
 
-
         data.documents[self.output_column] = pre_processed_outputs
         data.history[str(len(data.history) + 1)] = data.documents.copy(deep=True)
         data.set_text_column(self.output_column)
         
         return data
 
-        
 
     @staticmethod
     def get_info() -> dict:
@@ -147,3 +147,17 @@ class StopWordRemovalStep(PipelineStep):
                 supported_stopword_sets[language_name] = set(stopwords.words(language_name))
 
         return supported_stopword_sets
+    
+
+    def process_data_stopword_removal(self, input, selected_stopwords):
+        """
+            It tokenizes the words from the input parameter, trims leading and trailing whitespace, converts each word to lowercase, and removes any that appear in the selected_stopwords list. The remaining words are then joined with spaces to form and return a stopword-free string.
+
+            input: str -> INput string, from which the stopwords should be removed.
+            selected_stopwords: list(str) -> List of all stopwords against which teh string should be checked.
+
+            It returns the given input string without any stopwords from the selected_stopwords list. 
+        """
+        
+        withouth_stopwords = [word.strip() for word in word_tokenize(input) if word.lower() not in selected_stopwords]
+        return " ".join(withouth_stopwords)  

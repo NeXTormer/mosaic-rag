@@ -1,3 +1,5 @@
+import mosaicrs.pipeline.PipelineErrorHandling as err
+
 from sklearn.feature_extraction.text import TfidfVectorizer
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
@@ -16,8 +18,16 @@ class SimilarityMetrics(Enum):
 class TFIDFRerankerStep(PipelineStep):
     
     def __init__(self, input_column: str, query: str = None, similarity_metric: str = "Cosine"):
+        """
+            Performs document reranking using TF-IDF or BM25 with configurable similarity metrics.   
+
+            input_column: str -> Column in the PipelineIntermediate used to build TF-IDF/BM25 vectors. \n
+            query: str -> Optional query string for reranking. If None, the pipeline's main query is used. \n
+            similarity_metric: str -> One of {"Cosine", "Euclidean", "Manhattan", "BM25"}. Default is "Cosine". 
+        """
+
         self.source_column_name = input_column
-        self.similarity_metric = self.string_enum_mapping(similarity_metric)
+        self.similarity_metric, self.metric_exists = self.string_enum_mapping(similarity_metric)
         
         if query is not None:
             self.query = query
@@ -26,7 +36,20 @@ class TFIDFRerankerStep(PipelineStep):
             self.query = None
             self.use_new_query = False
 
+
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
+        """
+            The 'transform()' method is the core function of each pipeline step. It applies the specific modifications to the 'PipelineIntermediate' object for that step. Executes the reranking process by computing scores and assigning ranks.   
+            
+            data: PipelineIntermediate -> Object which holds the current data, its metadata and the history of intermediate results.\n
+            handler: PipelineStepHandler -> Object is responsible for everything related to caching, updating the progress bar/status and logging additional information.
+            
+            It returns the modified PipelineIntermediate object.             
+        """
+
+        if not self.metric_exists:
+            handler.warning(err.PipelineStepWarning(err.WarningMessages.MetricDoesNotExist))
+
         handler.update_progress(1, 1)
 
         reranking_id = str(data.get_next_reranking_step_number())
@@ -46,47 +69,10 @@ class TFIDFRerankerStep(PipelineStep):
 
         reranking_rank_name = "_reranking_rank_" + reranking_id + "_"
         data.documents[reranking_rank_name] = data.documents[reranking_score_name].rank(method="first", ascending=(False if self.similarity_metric in [SimilarityMetrics.COSINE, SimilarityMetrics.BM25] else True)).astype(int)
-        #print(data.documents)
         data.set_rank_column(reranking_rank_name)
         data.history[str(len(data.history)+1)] = data.documents.copy(deep=True)
 
-        #data.set_rank_column(reranking_score_name)
         return data
-
-    def compute_cosine_scores(self, doc_tfidf, query_tfidf):
-        return cosine_similarity(doc_tfidf, query_tfidf.reshape(1, -1)).flatten()
-    
-    def compute_euclidean_distance_scores(self, doc_tfidf, query_tfidf):
-        return euclidean_distances(doc_tfidf, query_tfidf.reshape(1, -1)).flatten()
-    
-    def compute_manhatten_distance_scores(self, doc_tfidf, query_tfidf):
-        return manhattan_distances(doc_tfidf, query_tfidf.reshape(1, -1)).flatten()
-    
-    def compute_bm25_scores(self, data):
-        tokenized_doc_corpus = [entry.split(" ") if entry is not None else "" for entry in data.documents[self.source_column_name].to_list()]
-        bm25 = BM25Okapi(tokenized_doc_corpus)
-        tokenized_query = (self.query if self.use_new_query else data.query).split(" ")
-        return bm25.get_scores(tokenized_query)
-
-    def string_enum_mapping(self, selected_metric:str) -> SimilarityMetrics:
-        if selected_metric not in {metric.value for metric  in SimilarityMetrics}:
-            #TODO: Potential Warning in the future
-            return SimilarityMetrics.COSINE
-            
-        return SimilarityMetrics(selected_metric)
-
-    def get_TFIDF_scores(self, data):
-        tfidf_vectorizer = TfidfVectorizer()
-
-        source_docs = [entry if entry is not None else "" for entry in data.documents[self.source_column_name].to_list()]
-        source_docs.append(self.query if self.use_new_query else data.query)
-
-        source_doc_tfidf = tfidf_vectorizer.fit_transform(source_docs).toarray()
-
-        query_tfidf = source_doc_tfidf[-1]
-        source_doc_tfidf = source_doc_tfidf[:-1]
-
-        return source_doc_tfidf, query_tfidf
 
 
     @staticmethod
@@ -124,6 +110,99 @@ class TFIDFRerankerStep(PipelineStep):
             }
         }
 
+
     @staticmethod
     def get_name() -> str:
         return "TF-IDF-Reranker"
+    
+
+    def compute_cosine_scores(self, doc_tfidf, query_tfidf):
+        """
+            Computes Cosine similarity scores between query and documents.  
+
+            doc_tfidf: np.ndarray -> TF-IDF vectors of documents. \n
+            query_tfidf: np.ndarray -> TF-IDF vector of the query. \n
+
+            It returns a 1D array of similarity scores (higher = more relevant). 
+        """
+        
+        return cosine_similarity(doc_tfidf, query_tfidf.reshape(1, -1)).flatten()
+    
+    def compute_euclidean_distance_scores(self, doc_tfidf, query_tfidf):
+        """
+            Computes Euclidean distance between query and document vectors.  
+
+            doc_tfidf: np.ndarray -> TF-IDF vectors of documents. \n
+            query_tfidf: np.ndarray -> TF-IDF vector of the query. \n
+
+            It returns a 1D array of distance scores (lower = more relevant). 
+        """
+        return euclidean_distances(doc_tfidf, query_tfidf.reshape(1, -1)).flatten()
+    
+    def compute_manhatten_distance_scores(self, doc_tfidf, query_tfidf):
+        """
+            Computes Manhattan (L1) distance between query and document vectors.  
+
+            doc_tfidf: np.ndarray -> TF-IDF vectors of documents. \n
+            query_tfidf: np.ndarray -> TF-IDF vector of the query. \n
+
+            It returns a 1D array of distance scores (lower = more relevant). 
+        """
+        return manhattan_distances(doc_tfidf, query_tfidf.reshape(1, -1)).flatten()
+    
+    def compute_bm25_scores(self, data):
+        """
+            Computes BM25 scores between query and documents.  
+
+            data: PipelineIntermediate -> Provides documents and query text. \n
+
+            It returns a list of BM25 scores (higher = more relevant). 
+        """
+
+        if self.source_column_name not in data.documents:
+            raise err.PipelineStepError(err.ErrorMessages.InvalidColumnName, column=self.source_column_name)
+         
+        tokenized_doc_corpus = [entry.split(" ") if entry is not None else "" for entry in data.documents[self.source_column_name].to_list()]
+        bm25 = BM25Okapi(tokenized_doc_corpus)
+        tokenized_query = (self.query if self.use_new_query else data.query).split(" ")
+        return bm25.get_scores(tokenized_query)
+
+    def string_enum_mapping(self, selected_metric:str) -> SimilarityMetrics:
+        """
+            Maps a user-provided string to the appropriate SimilarityMetrics enum value.  
+
+            selected_metric: str -> The metric name as a string. \n
+
+            If the metric is invalid, defaults to Cosine similarity and False as a second return value. \n
+            If the metric is valid it returns a SimilarityMetrics enum value and True as a second return value. 
+        """
+        
+        if selected_metric not in {metric.value for metric  in SimilarityMetrics}:
+            
+            return SimilarityMetrics.COSINE, False
+            
+        return SimilarityMetrics(selected_metric), True
+
+    def get_TFIDF_scores(self, data):
+        """
+            Generates TF-IDF vectors for both documents and query.  
+
+            data: PipelineIntermediate -> Provides documents and query. \n
+
+            It returns a tuple: (doc_tfidf, query_tfidf). 
+        """
+
+        if self.source_column_name not in data.documents:
+            raise err.PipelineStepError(err.ErrorMessages.InvalidColumnName, column=self.source_column_name)
+
+        tfidf_vectorizer = TfidfVectorizer()
+
+        source_docs = [entry if entry is not None else "" for entry in data.documents[self.source_column_name].to_list()]
+        source_docs.append(self.query if self.use_new_query else data.query)
+
+        source_doc_tfidf = tfidf_vectorizer.fit_transform(source_docs).toarray()
+
+        query_tfidf = source_doc_tfidf[-1]
+        source_doc_tfidf = source_doc_tfidf[:-1]
+
+        return source_doc_tfidf, query_tfidf

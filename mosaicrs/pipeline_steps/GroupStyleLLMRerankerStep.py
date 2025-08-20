@@ -1,16 +1,27 @@
 import pandas as pd
+import mosaicrs.pipeline.PipelineErrorHandling as err
+import numpy as np
+import itertools
+
 from mosaicrs.llm.LiteLLMLLMInterface import LiteLLMLLMInterface
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 import regex as re
-import numpy as np
-import itertools
+
 
 class GroupStyleLLMRerankerStep(PipelineStep):
 
     def __init__(self, input_column: str, query: str = None,
                  model: str = 'gemma2', window_size: str = "2"):
+        """
+            A pipeline step that reranks documents using a group-style LLM-based comparison strategy. This step reranks documents by comparing all possible groups of a given size with an LLM, awarding points to the most relevant document in each group, and then sorting all documents based on their total points.
+
+            input_column : str -> The column containing the text documents to rerank.\n
+            query : str, optional -> A step-specific query for reranking. If None, the pipeline query is used.\n
+            model : str -> The LLM model to use for reranking. Must be supported by LiteLLMLLMInterface. default='gemma2'\n
+            window_size : str -> The number of documents compared in each group (must be a digit string). default="2"
+        """
 
         if model not in LiteLLMLLMInterface.supported_models:
             self.llm = None
@@ -33,12 +44,22 @@ class GroupStyleLLMRerankerStep(PipelineStep):
             self.query = None
             self.use_new_query = False
 
+
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()):
+        """
+            The 'transform()' method is the core function of each pipeline step. It applies the specific modifications to the 'PipelineIntermediate' object for that step.  Apply the reranking step to the given pipeline data.
+            
+            data: PipelineIntermediate -> Object which holds the current data, its metadata and the history of intermediate results.\n
+            handler: PipelineStepHandler -> Object is responsible for everything related to caching, updating the progress bar/status and logging additional information.
+            
+            It returns the modified PipelineIntermediate object.             
+        """
+
         if self.llm is None:
-            handler.log(f"Model: {self.model} is not supported for the {GroupStyleLLMRerankerStep.get_name}.")
-            return data
+            raise err.PipelineStepError(err.ErrorMessages.InvalidModelName, model=self.model)
         
-        handler.log("Reranking using Group Style LLM-Reranker")
+        if self.source_column_name not in data.documents:
+            raise err.PipelineStepError(err.ErrorMessages.InvalidColumnName, column=self.source_column_name)
 
         full_texts = [entry if entry is not None else "" for entry in data.documents[self.source_column_name].to_list()]
         full_texts = list(zip(np.arange(1,len(full_texts)+1).tolist(), full_texts))
@@ -72,7 +93,18 @@ class GroupStyleLLMRerankerStep(PipelineStep):
 
         return data
 
+
     def llm_group_comparison(self, combi, query:str, handler: PipelineStepHandler):
+        """
+            Compare a group of documents using the LLM to determine the most relevant one.
+
+            combi : list of tuples -> A list of (doc_id, text) pairs representing the documents to compare.
+            query : str -> The query against which relevance is judged.
+            handler : PipelineStepHandler -> Handler for logging and error reporting.
+
+            Returns the ID of the most relevant document in the group as an integer, or 0 if none is relevant.
+        """
+        
         timeout_max = 10
         prompt_listing = "[1]"
         prompt_texts = ""
@@ -96,6 +128,7 @@ class GroupStyleLLMRerankerStep(PipelineStep):
                 
         handler.log("Comparison run into timeout!")
         return 0
+
 
     @staticmethod
     def get_info() -> dict:
@@ -135,6 +168,7 @@ class GroupStyleLLMRerankerStep(PipelineStep):
                 },
             }
         }
+
 
     @staticmethod
     def get_name() -> str:

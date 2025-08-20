@@ -1,12 +1,17 @@
 import string
-from nltk.tokenize import word_tokenize
-import unicodedata
-import contractions
 import numpy as np
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 import regex as re
 
 def translate_language_code(language_code:str):
+    """
+        Transalates a language code of the ISO 639 Set3 format to a full language name. Example: "eng" -> "english". Only supported languages will be translated, all other langugae codes will return ''. Supported languages are eng/englisch, deu/german, fra/french, and ita/italian.
+
+        language_code: str -> The language code which should be transalted to a full language name given in the format ISO 639 Set3.
+
+        Returns the language full name for supported languages or '' for unsupported languages. 
+    """
+
     language_dict = {
         "eng":"english",
         "deu":"german",
@@ -19,52 +24,26 @@ def translate_language_code(language_code:str):
     
     return ""
 
-
-def get_blacklist_for_filtering():
-    return [
-    "Home", "About", "Services", "Products", "Features", "Pricing", "Contact", "Blog",
-    "FAQ", "Help", "Support", "Careers", "Testimonials", "Portfolio", "Gallery",
-    "Login", "Register", "Sign Up", "Profile", "Dashboard", "Settings", "Logout",
-    "News", "Events", "Shop", "Store", "Resources", "Community", "Forum",
-    "Documentation", "Tutorials", "Guides", "Case Studies", "Partners", "Team",
-    "Press", "Investors", "API", "Developers", "Downloads", "Legal",
-    "Privacy Policy", "Terms of Service", "Sitemap", "Search", "Subscribe"
-    ]
-
-
-def process_data_punctuation_removal(data):
-    if data is None:
-        return ''
-
-    expanded_data = contractions.fix(data)
-    normalized_data = unicodedata.normalize("NFKD", expanded_data)
-    normalized_data = "".join(c for c in normalized_data if unicodedata.category(c) != 'Mn')
-    tokenized_words = word_tokenize(normalized_data) 
-    tokenized_words = [word.translate(str.maketrans('','',string.punctuation)) for word in tokenized_words]
-
-    cleaned_text = " ".join([word.strip() for word in tokenized_words if word != ''])
-    return cleaned_text 
-
-def process_data_stopword_removal(input, selected_stopwords):
-    withouth_stopwords = [word.strip() for word in word_tokenize(input) if word.lower() not in selected_stopwords]
-    return " ".join(withouth_stopwords)  
-
-def process_data_stemming(input, stemmer):
-    stemmed_words = [stemmer.stem(word).strip() for word in word_tokenize(input)]
-    return " ".join(stemmed_words)
-
-def get_lemmatization_code(language_name:str):
-    lemmatization_codes = {
-        "german": "de_core_news_sm",
-        "french": "fr_core_news_sm",
-        "italian": "it_core_news_sm"
-    }
-    if language_name in lemmatization_codes:
-        return lemmatization_codes[language_name]
+# def get_lemmatization_code(language_name:str):
+#     lemmatization_codes = {
+#         "german": "de_core_news_sm",
+#         "french": "fr_core_news_sm",
+#         "italian": "it_core_news_sm"
+#     }
+#     if language_name in lemmatization_codes:
+#         return lemmatization_codes[language_name]
     
-    return ""
+#     return ""
               
 def get_most_current_ranking(data: PipelineIntermediate):
+    """
+        This function returns the most up-to-date document ranking, using the latest available reranking column if present, otherwise falling back to the original ranking or a default sequential order.
+
+        data: PipelineIntermediate -> PipelineIntermediate object which should be checked for the most up-to-date ranking column.
+        
+        Returns the most up-to-date ranking as a list of integers.
+    """
+    
     column_name_list = data.documents.columns.to_list()
 
     if "_original_ranking_" not in column_name_list:

@@ -485,10 +485,10 @@ Removes stop words from the input text based on the document's language (support
     The column to clean in the [`PipelineIntermediate`](#pipelineintermediate).
     
 -   **`output_column`**  
-    Where the stopword-cleaned text will be stored in the [`PipelineIntermediate`](#pipelineintermediate).
+    The name of the column where the cleaned results of this pipeline step should be stored in the [`PipelineIntermediate`](#pipelineintermediate).
     
 -   **`language_column`**  
-    Specifies the language of each document.
+    The column containing the language ISO 639 Set3 language code. Is needed for stemming and stopword removable. Default: 'language'
     
 
 ----------
@@ -510,10 +510,10 @@ Removes punctuation from a given text column. First all words get expanded using
     Text column in the [`PipelineIntermediate`](#pipelineintermediate) to remove the punctuation.
     
 -   **`output_column`**  
-    Destination column for punctuation-free text in the [`PipelineIntermediate`](#pipelineintermediate).
+    The name of the column where the cleaned results of this pipeline step should be stored in the [`PipelineIntermediate`](#pipelineintermediate).
     
 -   **`process_query`**  
-    Boolean (`Yes`/`No`): Whether to also remove punctuation from the search query. Yes -> remove punctuation in the query, No -> do not remove punctuation in the query
+    Boolean (`Yes`/`No`): Whether to also remove punctuation from the search query. Yes -> remove punctuation in the query, No -> do not remove punctuation in the query. This parameter has to be a string for frontend reasons. 
     
 
 ----------
@@ -535,10 +535,10 @@ Applies stemming to a text column using the `SnowballStemmer` from NLTK. Languag
     Column with the input texts in the [`PipelineIntermediate`](#pipelineintermediate).
     
 -   **`output_column`**  
-    Column where the stemmed text will be saved in the [`PipelineIntermediate`](#pipelineintermediate).
+    The name of the column where the cleaned results of this pipeline step should be stored in the [`PipelineIntermediate`](#pipelineintermediate).
     
 -   **`language_column`**  
-    Contains the language code for each document.
+    The column containing the language ISO 639 Set3 language code. Is needed for stemming and stopword removable. Default: 'language'
     
 
 ----------
