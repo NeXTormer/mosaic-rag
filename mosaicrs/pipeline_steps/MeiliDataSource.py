@@ -8,17 +8,19 @@ from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 
 class MeiliDataSource(PipelineStep):
 
-    def __init__(self, output_column: str = 'full_text', limit='100'):
+    def __init__(self, output_column: str = 'full-text', limit='100'):
         self.target_column_name = output_column
         self.limit = limit
-        self.client = meilisearch.Client('http://127.0.0.1:7700', 'eS1o1KEq6NHFjCCvZhFU9N_zdr9locqxJRZHkWEQ4AA')
+        self.client = meilisearch.Client('http://dallions:7700', 'k5brEECPmrM5bhQpDDzvJz3v')
+        self.output_column = output_column
+
 
     def transform(self, data: PipelineIntermediate,
                   handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
 
         data.documents = self.query_meilisearch_to_dataframe(data.query)
 
-        data.set_text_column('full-text')
+        data.set_text_column(self.output_column)
 
         return data
 
@@ -35,8 +37,17 @@ class MeiliDataSource(PipelineStep):
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'required': True,
-                    'supported-values': ['5', '10', '20', '50', '100', '500'],
-                    'default': '10',
+                    'supported-values': ['5', '10', '20', '50', '100', '200', '500'],
+                    'default': '200',
+                },
+                'output_column': {
+                    'title': 'Output Column',
+                    'description': 'Output column of the plain text',
+                    'type': 'dropdown',
+                    'enforce-limit': False,
+                    'required': True,
+                    'supported-values': ['plain_text', 'full-text'],
+                    'default': 'full-text',
                 },
             }
         }
@@ -48,10 +59,11 @@ class MeiliDataSource(PipelineStep):
 
 
     def query_meilisearch_to_dataframe(self, query: str) -> pd.DataFrame:
-            index = self.client.index('ows2')
+            index = self.client.index('curlie_en')
 
             search_params = {
-                'attributesToRetrieve': ['title', 'plain_text', 'url'],
+                'attributesToRetrieve': ['title', 'plain_text', 'url', 'curlielabels', 'curlielabels_en', 'ows_tags', 'warc_file'],
+                'attributesToSearchOn': ['plain_text'],
                 'limit': int(self.limit)
             }
             search_result = index.search(query, search_params)
@@ -64,8 +76,12 @@ class MeiliDataSource(PipelineStep):
             data_for_df = [
                 {
                     'title': hit.get('title'),
-                    'full-text': hit.get('plain_text'),
+                    self.output_column: hit.get('plain_text'),
                     'url': hit.get('url'),
+                    'curlielabels': hit.get('curlielabels'),
+                    'curlielabels_en': hit.get('curlielabels_en'),
+                    'ows_tags': hit.get('ows_tags'),
+                    'warc_file': hit.get('warc_file'),
                 }
                 for hit in hits
             ]

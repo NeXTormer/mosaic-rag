@@ -34,7 +34,7 @@ from mosaicrs.pipeline_steps.ContentExtractorStep import ContentExtractorStep
 pipeline_steps_mapping = {
     "mosaic_datasource": MosaicDataSource,
     "chroma_datasource": ChromaDataSource,
-    # "meili_datasource": MeiliDataSource,
+    "meili_datasource": MeiliDataSource,
     "llm_summarizer": DocumentSummarizerStep,
     "all_results_summarizer": ResultsSummarizerStep,
     "basic_content_extractor": BasicContentExtractorStep,
