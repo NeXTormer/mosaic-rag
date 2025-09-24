@@ -19,6 +19,7 @@ import shortuuid
 import json
 
 from flask_cors import CORS
+from sentence_transformers import SentenceTransformer
 
 from app.ConversationTask import ConversationTask
 from app.PipelineTask import get_pipeline_info, PipelineTask
@@ -41,6 +42,8 @@ nltk.download("punkt")
 nltk.download("averaged_perceptron_tagger")
 nltk.download("wordnet")
 nltk.download('averaged_perceptron_tagger_eng')
+
+testmodel = SentenceTransformer("jinaai/jina-embeddings-v2-base-en")
 #Install spacy lemmatization models with python -m spacy download fr_core_news_sm
 
 

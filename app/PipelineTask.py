@@ -12,6 +12,7 @@ from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.ChromaDataSource import ChromaDataSource
 from mosaicrs.pipeline_steps.BasicContentExtractorStep import BasicContentExtractorStep
+from mosaicrs.pipeline_steps.CurlieFilterStep import CurlieFilterStep
 from mosaicrs.pipeline_steps.EmbeddingRerankerStep import EmbeddingRerankerStep
 from mosaicrs.pipeline_steps.MeiliDataSource import MeiliDataSource
 from mosaicrs.pipeline_steps.MosaicDataSource import MosaicDataSource
@@ -30,6 +31,7 @@ from mosaicrs.pipeline_steps.GroupStyleLLMRerankerStep import GroupStyleLLMReran
 from mosaicrs.pipeline_steps.ReductionStep import ReductionStep
 from mosaicrs.pipeline_steps.RelevanceMarkingStep import RelevanceMarkingStep
 from mosaicrs.pipeline_steps.ContentExtractorStep import ContentExtractorStep
+
 
 pipeline_steps_mapping = {
     "mosaic_datasource": MosaicDataSource,
@@ -51,6 +53,7 @@ pipeline_steps_mapping = {
     "reduction_step": ReductionStep,
     "relevance_marking_step": RelevanceMarkingStep,
     "content_extractor": ContentExtractorStep,
+    "curlie_filter": CurlieFilterStep,
 }
 
 class PipelineTask:
