@@ -62,7 +62,6 @@ class ChromaDataSource(PipelineStep):
         data_for_df = [
             {
                 **meta,
-                'title': meta.get('url'),
                 'full-text': meta.get('plain_text'),
                 'chromadb_distance': dist,
                 'id': doc_id,
