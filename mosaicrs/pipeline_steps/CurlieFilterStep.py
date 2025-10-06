@@ -1,11 +1,7 @@
 import pandas as pd
-import mosaicrs.pipeline.PipelineErrorHandling as err
-
-from tqdm import tqdm
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
-from enum import Enum
 
 
 class CurlieFilterStep(PipelineStep):
@@ -15,47 +11,59 @@ class CurlieFilterStep(PipelineStep):
         self.filter_by = filter_by
         self.filter_mode = filter_mode
 
-    def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
-        df = data.documents
+    def transform(self, data: PipelineIntermediate,
+                  handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
+        documents = data.documents
 
-        # Ensure the specified column exists in the dataframe
-        if self.curlie_column not in df.columns:
-            # handler.warning(err.pipeline_column_does_not_exist(self.curlie_column))
-            return data
+        if self.curlie_column not in documents.columns:
+            raise KeyError(f"Column '{self.curlie_column}' not found in the DataFrame.")
 
-        # If filter_by is empty or just whitespace, no filtering is needed.
         if not self.filter_by or not self.filter_by.strip():
             return data
 
-        # Prepare the set of labels to filter by for efficient lookups
         labels_to_filter = {label.strip() for label in self.filter_by.split(',')}
 
-        # Define the filtering logic based on the selected mode
+        def has_any_label(doc_labels: list) -> bool:
 
-        if self.filter_mode == 'OR':
-            # Keep rows where at least one of the filter labels is present
-            mask = df[self.curlie_column].apply(
-                lambda doc_labels: isinstance(doc_labels, list) and not labels_to_filter.isdisjoint(doc_labels)
-            )
-        elif self.filter_mode == 'AND':
-            # Keep rows where all filter labels are present
-            mask = df[self.curlie_column].apply(
-                lambda doc_labels: isinstance(doc_labels, list) and labels_to_filter.issubset(doc_labels)
-            )
-        elif self.filter_mode == 'NOT':
-            # Keep rows where none of the filter labels are present
-            mask = df[self.curlie_column].apply(
-                lambda doc_labels: not isinstance(doc_labels, list) or labels_to_filter.isdisjoint(doc_labels)
-            )
-        else:
-            # Handle invalid filter mode
-            # handler.add_error(err.pipeline_invalid_parameter_value(
-            #     'filter_mode', self.filter_mode, "Supported values are 'AND', 'OR', 'NOT'"
-            # ))
-            return data
 
-        # Apply the generated mask to filter the dataframe
-        data.documents = df[mask].reset_index(drop=True)
+            for required_label in labels_to_filter:
+                if required_label in doc_labels:
+                    return True
+
+            return False
+
+        def has_all_labels(doc_labels: list) -> bool:
+
+
+            for required_label in labels_to_filter:
+                if required_label not in doc_labels:
+                    return False
+
+            return True
+
+        def has_any_of_the_labels(doc_labels: list) -> bool:
+            for forbidden_label in labels_to_filter:
+                if forbidden_label in doc_labels:
+                    return False
+
+            return True
+
+        filter_logics = {
+            'OR': has_any_label,
+            'AND': has_all_labels,
+            'NOT': has_any_of_the_labels,
+        }
+
+        if self.filter_mode not in filter_logics:
+            supported_modes = ", ".join(filter_logics.keys())
+            raise ValueError(f"Invalid filter_mode '{self.filter_mode}'. Supported modes are: {supported_modes}.")
+
+        selected_logic = filter_logics[self.filter_mode]
+        mask = documents[self.curlie_column].apply(selected_logic)
+
+        print(mask)
+
+        data.documents = documents[mask].reset_index(drop=True)
         return data
 
     @staticmethod
@@ -63,19 +71,19 @@ class CurlieFilterStep(PipelineStep):
         return {
             "name": CurlieFilterStep.get_name(),
             "category": "Pre-Processing",
-            "description": "Reduces the number of results in the returned result set according to a selected ranking column. Either you choose the pre-selected '_original_ranking_' or enter the wanted ranking coumn name. The columns created by applying a reranker have the form '_reranking_rank_n_', where n is the reranking ID.",
+            "description": "Filters documents based on the presence (OR, AND) or absence (NOT) of specific labels in the selected Curlie column. Labels should be provided as a comma-separated string.",
             "parameters": {
                 'curlie_column': {
                     'title': 'Curlie Column',
-                    'description': 'Column containing the curlie labels',
+                    'description': 'Column containing the curlie labels.',
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'supported-values': ['curlielabels_en'],
                     'default': 'curlielabels_en',
                 },
                 'filter_by': {
-                    'title': 'Filter by',
-                    'description': 'Filtering is done by these labels, separated by comma (, )',
+                    'title': 'Filter by Labels',
+                    'description': 'A comma-separated list of labels to filter by.',
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'supported-values': ['Arts', 'Science', 'Arts, Science', 'Recreation', 'Health', 'Arts/Movies'],
@@ -83,17 +91,15 @@ class CurlieFilterStep(PipelineStep):
                 },
                 'filter_mode': {
                     'title': 'Filter Mode',
-                    'description': 'Specify AND, OR, or NOT',
+                    'description': 'The logical mode for filtering: AND (all labels must be present), OR (any label must be present), or NOT (no labels can be present).',
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'supported-values': ['AND', 'OR', 'NOT'],
                     'default': 'OR',
                 },
-
             }
         }
 
     @staticmethod
     def get_name() -> str:
         return "Curlie label filter"
-
