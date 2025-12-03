@@ -19,6 +19,7 @@ import shortuuid
 import json
 
 from flask_cors import CORS
+from ollama import Client
 from sentence_transformers import SentenceTransformer
 
 from app.ConversationTask import ConversationTask
@@ -165,6 +166,31 @@ try:
 except redis.exceptions.ConnectionError as e:
     logging.error(f"Could not connect to Redis: {e}. Pipeline save/restore will not work.")
     redis_client = None
+
+client = Client(host=os.environ.get('OLLAMA_HOST', 'a'))  # Use your actual IP
+
+try:
+    # This hits /api/tags, which rarely changes.
+    # If this works, your connection is fine.
+    models = client.list()
+    print("Connection successful. Available models:")
+    print(models)
+    found = False
+    for m in models['models']:
+        print(f" - {m['name']}")
+        # Check if your specific model is here
+        if ('jina/jina-embeddings-v2-base-en') in m['name']:
+            found = True
+
+    if not found:
+        print("\nCRITICAL: Model not found in list! Check exact name/tag.")
+    else:
+        print("\nModel found. The 404 is likely due to the .embeddings() vs .embed() method mismatch.")
+
+except Exception as e:
+    print(f"Connection failed completely: {e}")
+
+
 
 
 app = Flask(__name__)

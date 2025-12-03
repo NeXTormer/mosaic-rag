@@ -1,19 +1,53 @@
+import os
+
 import chromadb
 import pandas as pd
 import requests  # Added for making API calls to Ollama
+from ollama import Client
 
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 
 # --- Ollama Configuration ---
-OLLAMA_URL = "http://dallions.tail44754b.ts.net/api/embeddings"
+OLLAMA_URL = f"http://{os.environ.get('OLLAMA_HOST', 'localhost:11434')}"
 
 
 class ChromaDataSource(PipelineStep):
 
+    def _get_ollama_embedding(self, query: str, handler: PipelineStepHandler) -> list[float]:
+        """
+        Generates an embedding using raw requests to avoid library version mismatches.
+        """
+        url = f"{OLLAMA_URL}/api/embed"
+
+        payload = {
+            "model": self.ollama_model,
+            "input": query
+        }
+
+        try:
+            response = requests.post(url, json=payload)
+            response.raise_for_status()  # Raises error for 404, 500, etc.
+
+            data = response.json()
+            print('data from ollama: ')
+            print(data)
+
+            return data['embeddings'][0]
+
+        except requests.exceptions.RequestException as e:
+            handler.log(f"Ollama Connection Error: {e}")
+            if response.status_code == 404:
+                raise ValueError(f"404: Model '{self.ollama_model}' not found or endpoint incorrect.")
+            raise
+        except Exception as e:
+            handler.log(f"Error parsing Ollama response: {e}")
+            raise
+
+
     def __init__(self, output_column: str = 'full_text', limit='10',
-                 embedding_model='jina/jina-embeddings-v2-base-en', chromadb_url='dallions:80',
+                 embedding_model='jina/jina-embeddings-v2-base-en:latest', chromadb_url='dallions:80', # chromadb_url='172.17.0.1:8000',
                  chromadb_collection='curlie_eng'):
         self.target_column_name = output_column
         self.limit = int(limit)
@@ -25,30 +59,8 @@ class ChromaDataSource(PipelineStep):
         self.client = chromadb.HttpClient(host=CHROMA_HOST, port=CHROMA_PORT)
         self.collection = self.client.get_collection(name=CHROMA_COLLECTION_NAME)
 
-        # Set Ollama model and URL from parameters
         self.ollama_model = embedding_model
         self.ollama_url = OLLAMA_URL
-
-    def _get_ollama_embedding(self, query: str, handler: PipelineStepHandler) -> list[float]:
-        """
-        Generates an embedding for a given query using the Ollama API.
-        """
-        try:
-            response = requests.post(
-                OLLAMA_URL,
-                json={"model": self.ollama_model, "prompt": query},
-                headers={'Content-Type': 'application/json'}
-            )
-            response.raise_for_status()
-            return response.json().get("embedding")
-
-        except requests.exceptions.RequestException as e:
-            handler.log(f"Error connecting to Ollama API: {e}")
-            # You might want to re-raise the exception or handle it differently
-            raise ConnectionError(f"Failed to connect to Ollama API at {self.ollama_url}. Is Ollama running?") from e
-        except ValueError as e:
-            handler.log(f"Error processing Ollama API response: {e}")
-            raise
 
     def transform(self, data: PipelineIntermediate,
                   handler: PipelineStepHandler = PipelineStepHandler()) -> PipelineIntermediate:
@@ -114,8 +126,8 @@ class ChromaDataSource(PipelineStep):
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'required': True,
-                    'supported-values': ['dallions:80'],
-                    'default': 'dallions:80',
+                    'supported-values': ['172.17.0.1:8000', 'dallions:80'],
+                    'default': '172.17.0.1:8000',
                 },
                 'embedding_model': {
                     'title': 'Ollama Embedding Model',
@@ -123,8 +135,8 @@ class ChromaDataSource(PipelineStep):
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'required': True,
-                    'supported-values': ['jina/jina-embeddings-v2-base-en', 'mxbai-embed-large', 'nomic-embed-text'],
-                    'default': 'jina/jina-embeddings-v2-base-en',
+                    'supported-values': ['jina/jina-embeddings-v2-base-en:latest', 'mxbai-embed-large', 'nomic-embed-text'],
+                    'default': 'jina/jina-embeddings-v2-base-en:latest',
                 },
                 'chromadb_collection': {
                     'title': 'Collection',
@@ -132,8 +144,8 @@ class ChromaDataSource(PipelineStep):
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'required': True,
-                    'supported-values': ['curlie_eng', 'curlie', 'test', 'ows'],
-                    'default': 'curlie_eng',
+                    'supported-values': ['arts', 'health', 'recreation', 'science'],
+                    'default': 'arts',
                 },
                 'limit': {
                     'title': 'Limit',
