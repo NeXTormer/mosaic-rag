@@ -1,49 +1,26 @@
 import os
 
 import chromadb
+import ollama
 import pandas as pd
-import requests  # Added for making API calls to Ollama
-from ollama import Client
-
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 
-# --- Ollama Configuration ---
 OLLAMA_URL = f"http://{os.environ.get('OLLAMA_HOST', 'localhost:11434')}"
 
-
 class ChromaDataSource(PipelineStep):
+    def _get_ollama_embedding(self, query: str) -> list[float]:
+        client = ollama.Client(
+            host=OLLAMA_URL
+        )
 
-    def _get_ollama_embedding(self, query: str, handler: PipelineStepHandler) -> list[float]:
-        """
-        Generates an embedding using raw requests to avoid library version mismatches.
-        """
-        url = f"{OLLAMA_URL}/api/embed"
+        client.pull('jina/jina-embeddings-v2-base-en')
 
-        payload = {
-            "model": self.ollama_model,
-            "input": query
-        }
+        data = client.embeddings(model='jina/jina-embeddings-v2-base-en',
+                                 prompt=query).embedding
 
-        try:
-            response = requests.post(url, json=payload)
-            response.raise_for_status()  # Raises error for 404, 500, etc.
-
-            data = response.json()
-            print('data from ollama: ')
-            print(data)
-
-            return data['embeddings'][0]
-
-        except requests.exceptions.RequestException as e:
-            handler.log(f"Ollama Connection Error: {e}")
-            if response.status_code == 404:
-                raise ValueError(f"404: Model '{self.ollama_model}' not found or endpoint incorrect.")
-            raise
-        except Exception as e:
-            handler.log(f"Error parsing Ollama response: {e}")
-            raise
+        return list(data)
 
 
     def __init__(self, output_column: str = 'full_text', limit='10',
@@ -68,7 +45,9 @@ class ChromaDataSource(PipelineStep):
         handler.update_progress(0, 1)
 
         query_text = data.query
-        data.documents = self.query_chromadb_to_dataframe(query_text, handler)
+
+        data.documents = pd.concat([data.documents, self.query_chromadb_to_dataframe(query_text, handler)], ignore_index=True)
+
         data.set_text_column('full-text')
         data.set_rank_column('chromadb_distance')
         data.set_chip_column('curlielabels_en')
@@ -79,8 +58,9 @@ class ChromaDataSource(PipelineStep):
 
     def query_chromadb_to_dataframe(self, query: str, handler: PipelineStepHandler) -> pd.DataFrame:
         print("Starting embedding with Ollama")
-        # Generate the query embedding using the Ollama API
-        query_embedding = self._get_ollama_embedding(query, handler)
+
+
+        query_embedding = self._get_ollama_embedding(query)
         handler.log(f'Generated query embedding using Ollama model: {self.ollama_model}')
         print("Finished embedding, starting query")
 
@@ -112,9 +92,6 @@ class ChromaDataSource(PipelineStep):
 
     @staticmethod
     def get_info() -> dict:
-        """
-        Provides metadata about the pipeline step for UI generation.
-        """
         return {
             "name": ChromaDataSource.get_name(),
             "category": "Data Sources",
@@ -161,7 +138,4 @@ class ChromaDataSource(PipelineStep):
 
     @staticmethod
     def get_name() -> str:
-        """
-        Returns the display name of the pipeline step.
-        """
         return "ChromaDB Data Source"

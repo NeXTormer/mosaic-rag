@@ -142,7 +142,7 @@ class MosaicDataSource(PipelineStep):
                     'enforce-limit': False,
                     'required': True,
                     'supported-values': ['5', '10', '20', '50', '100', '500'],
-                    'default': '10',
+                    'default': '50',
                 },
                 'search_index': {
                     'title': 'Search index',
@@ -150,8 +150,8 @@ class MosaicDataSource(PipelineStep):
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'required': True,
-                    'supported-values': ['tech-knowledge', 'harry-potter', 'owi-snapshot-20240205-eng', 'simplewiki', 'unis-austria', 'medical-information', 'recipes', 'arts2', 'all'],
-                    'default': 'simplewiki',
+                    'supported-values': ['arts', 'health', 'recreation', 'science', 'simplewiki', 'all'],
+                    'default': 'arts',
                 },
             }
         }
