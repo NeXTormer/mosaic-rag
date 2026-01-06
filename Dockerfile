@@ -43,9 +43,6 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY app/ ./app
 COPY mosaicrs/ ./mosaicrs
 
-COPY deepseek.apikey ./deepseek.apikey
-COPY innkube.apikey ./innkube.apikey
-
 
 EXPOSE 5000
 

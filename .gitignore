@@ -7,3 +7,5 @@ deepseek.apikey
 
 
 frontend
+
+docker-compose-with-keys.yml

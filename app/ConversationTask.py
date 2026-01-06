@@ -1,3 +1,4 @@
+import os
 import uuid
 
 from litellm.llms.openai import openai
@@ -39,8 +40,10 @@ class ConversationTask:
 
         self.uuid = uuid.uuid4().hex
 
-        with open('innkube.apikey', 'r') as file:
-            api_key = file.read().rstrip()
+        # with open('innkube.apikey', 'r') as file:
+        #     api_key = file.read().rstrip()
+
+        api_key = os.environ.get('INNKUBE_APIKEY')
 
         self.client = openai.OpenAI(api_key=api_key, base_url='https://llms-inference.innkube.fim.uni-passau.de')
 

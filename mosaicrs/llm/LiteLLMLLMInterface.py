@@ -1,3 +1,4 @@
+import os
 from typing import List, Dict
 import openai
 
@@ -11,8 +12,9 @@ class LiteLLMLLMInterface(LLMInterface):
     def __init__(self, system_prompt='', model='gemma2'):
         LLMInterface.__init__(self)
 
-        with open('innkube.apikey', 'r') as file:
-            api_key = file.read().rstrip()
+        # with open('innkube.apikey', 'r') as file:
+        #     api_key = file.read().rstrip()
+        api_key = os.environ.get('INNKUBE_APIKEY')
 
         self.system_prompt = system_prompt
         self.model = '' + model

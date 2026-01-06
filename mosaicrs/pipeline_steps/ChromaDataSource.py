@@ -46,7 +46,16 @@ class ChromaDataSource(PipelineStep):
 
         query_text = data.query
 
-        data.documents = pd.concat([data.documents, self.query_chromadb_to_dataframe(query_text, handler)], ignore_index=True)
+        chroma_documents = self.query_chromadb_to_dataframe(query_text, handler)
+
+        handler.log('merging chroma documents with existing documents...')
+        handler.log('chroma columns: ' + str(chroma_documents.columns))
+        handler.log('existing columns: ' + str(data.documents.columns))
+
+        data.documents = pd.concat([data.documents, chroma_documents], ignore_index=True)
+
+        handler.log('merged df:')
+        handler.log(str(data.documents.head()))
 
         data.set_text_column('full-text')
         data.set_rank_column('chromadb_distance')
@@ -57,24 +66,25 @@ class ChromaDataSource(PipelineStep):
         return data
 
     def query_chromadb_to_dataframe(self, query: str, handler: PipelineStepHandler) -> pd.DataFrame:
-        print("Starting embedding with Ollama")
+        handler.log("Starting embedding of query with Ollama...")
 
 
         query_embedding = self._get_ollama_embedding(query)
         handler.log(f'Generated query embedding using Ollama model: {self.ollama_model}')
-        print("Finished embedding, starting query")
+        handler.log("Finished embedding, starting query, emb[:5]: " + str(query_embedding[:5]))
 
         search_result = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=self.limit
         )
-        print("Finished query")
+        handler.log("Finished query, nr of results: " + str(len(search_result.get('ids'))))
 
         ids = search_result.get('ids', [[]])[0]
         metadatas = search_result.get('metadatas', [[]])[0]
         distances = search_result.get('distances', [[]])[0]
 
         if not ids:
+            handler.log('no results from chromadb')
             return pd.DataFrame()
 
         data_for_df = [
@@ -88,6 +98,7 @@ class ChromaDataSource(PipelineStep):
         ]
 
         df = pd.DataFrame(data_for_df)
+        handler.log('returning df from chromadb query with length: ' + str(len(df)))
         return df
 
     @staticmethod
@@ -103,7 +114,7 @@ class ChromaDataSource(PipelineStep):
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'required': True,
-                    'supported-values': ['172.17.0.1:8000', 'dallions:80'],
+                    'supported-values': ['172.17.0.1:8000'],
                     'default': '172.17.0.1:8000',
                 },
                 'embedding_model': {
