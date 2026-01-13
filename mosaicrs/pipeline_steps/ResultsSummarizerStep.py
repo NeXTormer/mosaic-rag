@@ -1,16 +1,13 @@
+import json
+import os
+
 import pandas as pd
 import mosaicrs.pipeline.PipelineErrorHandling as err
 
-from transformers import T5ForConditionalGeneration, T5Tokenizer
-from mosaicrs.llm.DeepSeekLLMInterface import DeepSeekLLMInterface
 from mosaicrs.llm.LiteLLMLLMInterface import LiteLLMLLMInterface
-from mosaicrs.llm.T5Transformer import T5Transformer
-from tqdm import tqdm
-from mosaicrs.llm.LLMInterface import LLMInterface
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
-from enum import Enum
 
 class ResultsSummarizerStep(PipelineStep):
 
@@ -26,11 +23,12 @@ class ResultsSummarizerStep(PipelineStep):
             summarize_prompt: str -> Instruction prefix that guides the summarization process. Default: "summarize: ".
         """
 
-        if model == 'DeepSeekv3':
-            self.llm = DeepSeekLLMInterface(system_prompt='You are a helpful assistant part of a search engine. You are given a query and documents separated by <SEP>. Please summarize the documents in order to answer the query. Do not use any additional information not available in the given documents. The summary should be a maximum of five sentences without any listings. Mark important passages as bold.')
-        else:
-            self.llm = LiteLLMLLMInterface(model=model, system_prompt='You are a helpful assistant part of a search engine. You are given a query and documents separated by <SEP>. Please summarize the documents in order to answer the query. Do not use any additional information not available in the given documents. The summary should be a maximum of five sentences without any listings. Mark important passages as bold.')
 
+        self.llm = LiteLLMLLMInterface()
+
+        self.system_prompt = 'You are a helpful assistant part of a search engine. You are given a query and documents separated by <SEP>. Please summarize the documents in order to answer the query. Do not use any additional information not available in the given documents. The summary should be a maximum of five sentences without any listings. Mark important passages as bold.'
+
+        self.model_name = model
         self.source_column_name = input_column
         self.target_column_name = output_column
         self.summarize_prompt = summarize_prompt
@@ -52,7 +50,7 @@ class ResultsSummarizerStep(PipelineStep):
         full_texts = [entry if entry is not None else "" for entry in data.documents[self.source_column_name].to_list()]
 
         handler.update_progress(0, 1)
-        summary = self.llm.generate("Query: " + data.query + "<SEP>" + "<SEP>".join(full_texts))
+        summary = self.llm.generate(self.system_prompt + "\nQuery: " + data.query + "<SEP>" + "<SEP>".join(full_texts), self.model_name)
         handler.increment_progress()
 
 
@@ -78,7 +76,7 @@ class ResultsSummarizerStep(PipelineStep):
                     'description': 'The LLM instance used for summarization. the following models are currently supported: DeepSeekv3,gemma2, qwen2.5, llama3.1.',
                     'type': 'dropdown',
                     'enforce-limit': False,
-                    'supported-values': ['DeepSeekv3', 'gemma2', 'qwen2.5', 'llama3.1'],
+                    'supported-values': json.loads(os.environ.get('LITELLM_MODELS')),
                     'default': 'gemma2',
                 },
                 'input_column': {

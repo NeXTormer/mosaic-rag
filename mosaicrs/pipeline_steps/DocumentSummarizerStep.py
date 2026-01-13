@@ -1,11 +1,11 @@
+import json
+import os
+
 import pandas as pd
 import hashlib
 import mosaicrs.pipeline.PipelineErrorHandling as err
 
-from transformers import T5ForConditionalGeneration, T5Tokenizer
-from mosaicrs.llm.DeepSeekLLMInterface import DeepSeekLLMInterface
 from mosaicrs.llm.LiteLLMLLMInterface import LiteLLMLLMInterface
-from mosaicrs.llm.T5Transformer import T5Transformer
 from tqdm import tqdm
 from mosaicrs.llm.LLMInterface import LLMInterface
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
@@ -17,8 +17,8 @@ from enum import Enum
 class DocumentSummarizerStep(PipelineStep):
 
     def __init__(self, input_column: str, output_column: str,
-                 model: str = 'DeepSeekv3',
-                 summarize_prompt: str = "summarize: "):
+                 model: str = 'gemma3-4b',
+                 summarize_prompt: str = "Summarize the following text. Just write out the summary, noting more: "):
         """
              A pipeline step that summarizes text documents using a Large Language Model (LLM). This step takes an input column containing text (e.g., "full-text"), generates  summaries for each entry using the specified LLM, and stores the results in  an output column (e.g., "summary"). Summarization results are cached to avoid  recomputation on repeated runs with the same inputs and configuration.
         
@@ -29,10 +29,7 @@ class DocumentSummarizerStep(PipelineStep):
         """
         
         self.model_name = model
-        if model == 'DeepSeekv3':
-            self.llm = DeepSeekLLMInterface(system_prompt='You are a helpful assistant')
-        else:
-            self.llm = LiteLLMLLMInterface(model=model, system_prompt='You are a helpful assistant')
+        self.llm = LiteLLMLLMInterface()
 
         self.source_column_name = input_column
         self.target_column_name = output_column
@@ -65,7 +62,7 @@ class DocumentSummarizerStep(PipelineStep):
             summary = handler.get_cache(text_hash)
 
             if summary is None:
-                summary = self.llm.generate(self.summarize_prompt + text)
+                summary = self.llm.generate(self.summarize_prompt + text, self.model_name)
                 handler.put_cache(text_hash, summary)
 
             summarized_texts.append(summary)
@@ -87,11 +84,11 @@ class DocumentSummarizerStep(PipelineStep):
             "parameters": {
                 'model': {
                     'title': 'Summarizer model',
-                    'description': 'LLM model instance to use for summarization. Can be any T5 transformer model.',
+                    'description': 'LLM model that exists on the lite-llm instance to use for summarization.',
                     'type': 'dropdown',
                     'enforce-limit': False,
-                    'supported-values': ['DeepSeekv3', 'gemma2', 'qwen2.5', 'llama3.1'],
-                    'default': 'gemma2',
+                    'supported-values': json.loads(os.environ.get('LITELLM_MODELS')),
+                    'default': 'gemma3-4b',
                 },
                 'input_column': {
                     'title': 'Input column name',
@@ -114,7 +111,7 @@ class DocumentSummarizerStep(PipelineStep):
                     'description': 'This instruction is given to the LLM to summarize the text.',
                     'type': 'string',
                     'enforce-limit': False,
-                    'default': 'Summarize: ',
+                    'default': 'Summarize the following text. Just write out the summary, noting more: ',
                 },
 
             }

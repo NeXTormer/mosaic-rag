@@ -3,15 +3,11 @@ from abc import ABC, abstractmethod
 
 class LLMInterface(ABC):
     def __init__(self,
-                 model: Optional[str] = None,
-                 system_prompt: Optional[str] = None
                  ) -> None:
-        self.model = model
-        self.system_prompt = system_prompt
-
+        pass
 
     @abstractmethod
-    def generate(self, prompt: str):
+    def generate(self, prompt: str, model: str):
         pass
 
 

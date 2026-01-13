@@ -1,3 +1,6 @@
+import json
+import os
+
 import pandas as pd
 import mosaicrs.pipeline.PipelineErrorHandling as err
 import numpy as np
@@ -13,7 +16,7 @@ import regex as re
 class GroupStyleLLMRerankerStep(PipelineStep):
 
     def __init__(self, input_column: str, query: str = None,
-                 model: str = 'gemma2', window_size: str = "2"):
+                 model: str = 'gemma3-4b', window_size: str = "2"):
         """
             A pipeline step that reranks documents using a group-style LLM-based comparison strategy. This step reranks documents by comparing all possible groups of a given size with an LLM, awarding points to the most relevant document in each group, and then sorting all documents based on their total points.
 
@@ -32,7 +35,7 @@ class GroupStyleLLMRerankerStep(PipelineStep):
 
         self.system_prompt = f"Your task is to determine which of {self.k} texts is more relevant to a given query.Please only answer with the most relevant text id in brackets ([ID]). If none of the texts is relevant to the query, answer [0]!"
         
-        self.llm = LiteLLMLLMInterface(model=model, system_prompt=self.system_prompt)
+        self.llm = LiteLLMLLMInterface(system_prompt=self.system_prompt)
 
         self.source_column_name = input_column
         self.model = model
@@ -142,8 +145,8 @@ class GroupStyleLLMRerankerStep(PipelineStep):
                     'description': 'LLM model instance to use for the reranking task.',
                     'type': 'dropdown',
                     'enforce-limit': False,
-                    'supported-values': ['gemma2', 'qwen2.5', 'llama3.1'],
-                    'default': 'gemma2',
+                    'supported-values': json.loads(os.environ.get('LITELLM_MODELS')),
+                    'default': 'gemma3-4b',
                 },
                 'input_column': {
                     'title': 'Input column name',

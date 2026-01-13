@@ -1,3 +1,4 @@
+import json
 import os
 from typing import List, Dict
 import openai
@@ -7,26 +8,21 @@ from mosaicrs.llm.LLMInterface import LLMInterface
 
 class LiteLLMLLMInterface(LLMInterface):
 
-    supported_models = ["gemma2", "qwen2.5", "llama3.1"]
+    supported_models = json.loads(os.environ.get('LITELLM_MODELS'))
 
-    def __init__(self, system_prompt='', model='gemma2'):
+    def __init__(self, system_prompt: str = ''):
         LLMInterface.__init__(self)
 
-        # with open('innkube.apikey', 'r') as file:
-        #     api_key = file.read().rstrip()
-        api_key = os.environ.get('INNKUBE_APIKEY')
-
+        api_key = os.environ.get('LITELLM_APIKEY')
+        url = os.environ.get('LITELLM_URL')
+        self.client = openai.OpenAI(api_key=api_key, base_url=url)
         self.system_prompt = system_prompt
-        self.model = '' + model
-        self.client = openai.OpenAI(api_key=api_key, base_url='https://llms-inference.innkube.fim.uni-passau.de')
 
-
-    def generate(self, prompt: str):
+    def generate(self, prompt: str, model: str):
         response = self.client.chat.completions.create(
-            model=self.model,
+            model=model,
             messages=[
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": prompt},
+                {"role": "user", "content": self.system_prompt + prompt},
             ],
             stream=False
         )

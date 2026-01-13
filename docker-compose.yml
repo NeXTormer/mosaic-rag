@@ -7,12 +7,13 @@ services:
     environment:
       - REDIS_HOST=redis
       - OLLAMA_HOST=172.17.0.1:11434
-      - COLOR_THEME=orange-light
-      - APP_TITLE='My RAG'
-      - APP_SUBTITLE=test123
+      - COLOR_THEME=blue-light
+      - APP_TITLE=
+      - APP_SUBTITLE=
       - APP_DEFAULT_PIPELINE={"1":{"id":"mosaic_datasource","parameters":{"output_column":"full-text","url":"https://mosaic.ows.eu/service/api","limit":"20","search_index":"simplewiki"}}}
-      - DEEPSEEK_APIKEY=x
-      - INNKUBE_APIKEY=x
+      - LITELLM_URL=
+      - LITELLM_APIKEY=
+      - LITELLM_MODELS=
 
     depends_on:
       - redis

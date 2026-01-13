@@ -1,5 +1,5 @@
 # generate embeddings from OWI
-# file by Felix Holz and Gemini 2.5 
+# file by Felix Holz and Gemini 2.5
 
 
 import os
