@@ -257,9 +257,8 @@ def get_app_config():
 @app.get('/task/chat/<string:chat_id>')
 def task_chat(chat_id: str):
 
-    print(request.args)
-
-    model = request.args.get('model')
+    model = os.environ.get('LITELLM_CHAT_MODEL') if os.environ.get('LITELLM_CHAT_MODEL') else json.loads(os.environ.get('LITELLM_MODELS'))[0]
+    print("model", model)
     column = request.args.get('column')
 
     task_id = request.args.get('task_id')

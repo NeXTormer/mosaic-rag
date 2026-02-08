@@ -13,12 +13,24 @@ from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 from enum import Enum
 
+document_summarizer_prompt = """
+You are a high-efficiency information extraction assistant for a RAG system.
+
+CONSTRAINTS:
+1. EMPTY INPUT: If the document is empty or unreadable, output ONLY the phrase: "Empty document."
+2. LANGUAGE: You MUST write the summary in the same language as the original document.
+3. BREVITY: Provide only 2 to 4 sentences.
+4. FORMATTING: Use **Markdown bolding** for critical entities, dates, or technical terms.
+5. STYLE: Start directly with facts; no filler phrases (e.g., "This text is about...").
+6. ACCURACY: Use only the provided text.
+
+Summarize this document:
+""".strip()
 
 class DocumentSummarizerStep(PipelineStep):
 
     def __init__(self, input_column: str, output_column: str,
-                 model: str = 'gemma3-4b',
-                 summarize_prompt: str = "Summarize the following text. Just write out the summary, noting more: "):
+                 model: str = json.loads(os.environ.get('LITELLM_MODELS'))[0]):
         """
              A pipeline step that summarizes text documents using a Large Language Model (LLM). This step takes an input column containing text (e.g., "full-text"), generates  summaries for each entry using the specified LLM, and stores the results in  an output column (e.g., "summary"). Summarization results are cached to avoid  recomputation on repeated runs with the same inputs and configuration.
         
@@ -33,7 +45,7 @@ class DocumentSummarizerStep(PipelineStep):
 
         self.source_column_name = input_column
         self.target_column_name = output_column
-        self.summarize_prompt = summarize_prompt
+        self.summarize_prompt = document_summarizer_prompt
 
 
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()):
@@ -106,14 +118,6 @@ class DocumentSummarizerStep(PipelineStep):
                     'supported-values': ['summary'],
                     'default': 'summary',
                 },
-                'summarize_prompt': {
-                    'title': 'Summarizing instruction',
-                    'description': 'This instruction is given to the LLM to summarize the text.',
-                    'type': 'string',
-                    'enforce-limit': False,
-                    'default': 'Summarize the following text. Just write out the summary, noting more: ',
-                },
-
             }
         }
 

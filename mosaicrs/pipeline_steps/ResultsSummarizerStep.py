@@ -12,8 +12,7 @@ from mosaicrs.pipeline_steps.PipelineStep import PipelineStep
 class ResultsSummarizerStep(PipelineStep):
 
     def __init__(self, input_column: str, output_column: str,
-                 model: str = 'DeepSeekv3',
-                 summarize_prompt: str = "summarize: "):
+                 model: str = json.loads(os.environ.get('LITELLM_MODELS'))[0]):
         """
             Pipeline step: Summarizes all documents in the result set into a single unified summary. This step is query-aware: it takes the query from the PipelineIntermediate, concatenates all documents separated by <SEP>, and instructs the LLM to generate a coherent summary that directly answers the query. The output is stored as metadata in the pipeline state. 
 
@@ -26,12 +25,26 @@ class ResultsSummarizerStep(PipelineStep):
 
         self.llm = LiteLLMLLMInterface()
 
-        self.system_prompt = 'You are a helpful assistant part of a search engine. You are given a query and documents separated by <SEP>. Please summarize the documents in order to answer the query. Do not use any additional information not available in the given documents. The summary should be a maximum of five sentences without any listings. Mark important passages as bold.'
+        self.system_prompt = '''
+        You are a search engine assistant. You will receive a Query and several Documents separated by <SEP>.
+
+        CONSTRAINTS:
+        1. OBJECTIVE: Synthesize the documents into a single, cohesive answer to the user query.
+        2. LANGUAGE: The summary MUST be in the same language as the provided documents.
+        3. NO HALLUCINATION: Use strictly the provided information. If the documents don't contain the answer, state that.
+        4. FORMATTING: Maximum 5 sentences. No lists or bullet points. Use **Markdown bolding** for key facts.
+        5. FLOW: Avoid citing documents by name (e.g., "Doc 1 says..."); create a natural, fluid summary.
+        
+        OUTPUT:
+        A single, high-density paragraph.
+        
+        INPUT:
+        '''
 
         self.model_name = model
         self.source_column_name = input_column
         self.target_column_name = output_column
-        self.summarize_prompt = summarize_prompt
+
 
     
     def transform(self, data: PipelineIntermediate, handler: PipelineStepHandler = PipelineStepHandler()):

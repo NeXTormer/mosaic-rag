@@ -12,8 +12,5 @@ class LLMInterface(ABC):
 
 
     @abstractmethod
-    def chat(
-            self,
-            conversation: List[Dict[str, str]],
-    ) -> str:
+    def chat(self, model: str, conversation: List[Dict[str, str]]) -> str:
         pass

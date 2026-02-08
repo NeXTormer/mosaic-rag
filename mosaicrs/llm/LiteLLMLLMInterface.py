@@ -29,5 +29,11 @@ class LiteLLMLLMInterface(LLMInterface):
 
         return response.choices[0].message.content
 
-    def chat(self, conversation: List[Dict[str, str]]) -> str:
-        pass
+    def chat(self, model: str, conversation: List[Dict[str, str]]) -> str:
+        response = self.client.chat.completions.create(
+            model=model,
+            messages=conversation,
+            stream=False
+        )
+
+        return response.choices[0].message.content

@@ -172,7 +172,7 @@ class MosaicDataSource(PipelineStep):
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'required': True,
-                    'supported-values': list(set(MosaicDataSource.get_index_names() + ['arts', 'health', 'recreation', 'science', 'simplewiki', 'mastodon', 'german-wiki', 'all'])),
+                    'supported-values': list(set(MosaicDataSource.get_index_names() + ['arts', 'health', 'recreation', 'science', 'all'])),
                     'default': 'arts',
                 },
             }
