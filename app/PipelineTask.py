@@ -11,7 +11,6 @@ from mosaicrs.pipeline.PipelineErrorHandling import PipelineStepError
 from mosaicrs.pipeline.PipelineIntermediate import PipelineIntermediate
 from mosaicrs.pipeline.PipelineStepHandler import PipelineStepHandler
 from mosaicrs.pipeline_steps.ChromaDataSource import ChromaDataSource
-from mosaicrs.pipeline_steps.BasicContentExtractorStep import BasicContentExtractorStep
 from mosaicrs.pipeline_steps.CurlieFilterStep import CurlieFilterStep
 from mosaicrs.pipeline_steps.EmbeddingRerankerStep import EmbeddingRerankerStep
 from mosaicrs.pipeline_steps.MeiliDataSource import MeiliDataSource
@@ -39,7 +38,6 @@ pipeline_steps_mapping = {
     "meili_datasource": MeiliDataSource,
     "llm_summarizer": DocumentSummarizerStep,
     "all_results_summarizer": ResultsSummarizerStep,
-    "basic_content_extractor": BasicContentExtractorStep,
     "embedding_reranker": EmbeddingRerankerStep,
     "word_counter": WordCounterStep,
     "tf_idf_reranker": TFIDFRerankerStep,

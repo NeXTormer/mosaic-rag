@@ -15,7 +15,7 @@ from mosaicrs.pipeline_steps.utils import get_most_current_ranking
 
 class MosaicDataSource(PipelineStep):
 
-    def __init__(self, output_column: str = 'full_text', consider_query: bool = True, url: str = "https://mosaic.ows.eu/service/api/", default_search_path: str = "/search?", default_full_text_path: str = "/full-text?", search_index = 'simplewiki', limit = '10'):
+    def __init__(self, output_column: str = 'full_text', consider_query: bool = True, url: str = "https://mosaic.ows.eu/service/api", default_search_path: str = "/search?", default_full_text_path: str = "/full-text?", search_index = 'simplewiki', limit = '10'):
         self.mosaic_url = url
         self.search_path_part = default_search_path
         self.full_text_path_part = default_full_text_path
@@ -111,6 +111,28 @@ class MosaicDataSource(PipelineStep):
         return data
 
     @staticmethod
+    def get_index_names():
+        url = "https://mosaic.ows.eu/service/api/index-info"
+
+        try:
+            # Make the GET request
+            response = requests.get(url)
+            # Raise an exception for HTTP errors (4xx or 5xx)
+            response.raise_for_status()
+
+            data = response.json()
+
+            # Extract the first key from each dictionary inside the 'results' list
+            # result.keys() returns a view, so we convert to list or take the next iterator
+            index_names = [list(item.keys())[0] for item in data.get("results", [])]
+
+            return index_names
+
+        except requests.exceptions.RequestException as e:
+            print(f"An error occurred: {e}")
+            return []
+
+    @staticmethod
     def get_info() -> dict:
         return {
             "name": MosaicDataSource.get_name(),
@@ -132,8 +154,8 @@ class MosaicDataSource(PipelineStep):
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'required': True,
-                    'supported-values': ['http://localhost:8008', 'https://mosaic.felixholz.com', 'https://mosaic.ows.eu/service/api/'],
-                    'default': 'https://mosaic.ows.eu/service/api/',
+                    'supported-values': ['http://localhost:8008', 'https://mosaic.felixholz.com', 'https://mosaic.ows.eu/service/api'],
+                    'default': 'https://mosaic.ows.eu/service/api',
                 },
                 'limit': {
                     'title': 'Limit',
@@ -150,11 +172,13 @@ class MosaicDataSource(PipelineStep):
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'required': True,
-                    'supported-values': ['arts', 'health', 'recreation', 'science', 'simplewiki', 'all'],
+                    'supported-values': list(set(MosaicDataSource.get_index_names() + ['arts', 'health', 'recreation', 'science', 'simplewiki', 'mastodon', 'german-wiki', 'all'])),
                     'default': 'arts',
                 },
             }
         }
+
+
 
     @staticmethod
     def get_name() -> str:

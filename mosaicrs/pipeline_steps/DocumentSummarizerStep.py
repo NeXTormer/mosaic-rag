@@ -88,7 +88,7 @@ class DocumentSummarizerStep(PipelineStep):
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'supported-values': json.loads(os.environ.get('LITELLM_MODELS')),
-                    'default': 'gemma3-4b',
+                    'default': json.loads(os.environ.get('LITELLM_MODELS'))[0],
                 },
                 'input_column': {
                     'title': 'Input column name',

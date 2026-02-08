@@ -73,11 +73,11 @@ class ResultsSummarizerStep(PipelineStep):
             "parameters": {
                 'model': {
                     'title': 'Summarizer model',
-                    'description': 'The LLM instance used for summarization. the following models are currently supported: DeepSeekv3,gemma2, qwen2.5, llama3.1.',
+                    'description': 'The LLM instance used for summarization.',
                     'type': 'dropdown',
                     'enforce-limit': False,
                     'supported-values': json.loads(os.environ.get('LITELLM_MODELS')),
-                    'default': 'gemma2',
+                    'default': json.loads(os.environ.get('LITELLM_MODELS'))[0],
                 },
                 'input_column': {
                     'title': 'Input column name',

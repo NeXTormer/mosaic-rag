@@ -1,6 +1,23 @@
-# mosaicRAG
+# Mosaic-RAG
 ad
-This is mosaicRAG, a retrieval system and retrieval augmented generation library for Mosaic (and other data sources).
+This is MOSAIC-RAG, a retrieval system and retrieval augmented generation library for Mosaic (and other data sources).
+
+
+Mosaic-RAG
+mosaicRAG
+MOSAIC-RAG
+MosaicRag
+
+
+
+MOSAIC und MOSAIC-RAG
+
+Mosaic und MosaicRag
+
+Mosaic und MosaicRAG
+
+Mosaic und mosaicRAG
+
 
 #### Links:
 - [mosaicRAG](https://mosaicrag.ows.eu)

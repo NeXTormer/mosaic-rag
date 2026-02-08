@@ -10,7 +10,7 @@ services:
       - COLOR_THEME=blue-light
       - APP_TITLE=
       - APP_SUBTITLE=
-      - APP_DEFAULT_PIPELINE={"1":{"id":"mosaic_datasource","parameters":{"output_column":"full-text","url":"https://mosaic.ows.eu/service/api","limit":"20","search_index":"simplewiki"}}}
+      - APP_DEFAULT_PIPELINE={"1":{"id":"mosaic_datasource","parameters":{"output_column":"full-text","url":"https://mosaic.ows.eu/service/api","limit":"20","search_index":"arts"}}}
       - LITELLM_URL=
       - LITELLM_APIKEY=
       - LITELLM_MODELS=
