@@ -1,0 +1,18 @@
+services:
+  logger:
+    build: .
+    ports:
+      - "5820:5000"
+    volumes:
+      - ./database:/app/database
+
+    environment:
+      - PYTHONUNBUFFERED=1
+
+#  viewer:
+#    image: coleifer/sqlite-web
+#    ports:
+#      - "5830:8080"
+#    volumes:
+#      - ./study_data.db:/data/study_data.db:ro
+#    command: /data/study_data.db --host=0.0.0.0 --port=8080 --no-browser

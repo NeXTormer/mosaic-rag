@@ -123,4 +123,4 @@ class DocumentSummarizerStep(PipelineStep):
 
     @staticmethod
     def get_name() -> str:
-        return "LLM Summarizer"
+        return "Document summarizer"

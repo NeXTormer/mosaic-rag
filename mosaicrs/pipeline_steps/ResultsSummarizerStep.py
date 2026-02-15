@@ -115,4 +115,4 @@ class ResultsSummarizerStep(PipelineStep):
 
     @staticmethod
     def get_name() -> str:
-        return "Query Summarizer"
+        return "Result summarizer"
