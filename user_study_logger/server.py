@@ -73,7 +73,8 @@ def init_db():
                      previous_rank_column
                      TEXT,
                      next_rank_column
-                     TEXT
+                     TEXT,
+                     step_name TEXT
                  )
                  ''')
     conn.commit()
@@ -122,6 +123,7 @@ def log_event():
         'next_text_column': data.get('next_text_column'),
         'previous_rank_column': data.get('previous_rank_column'),
         'next_rank_column': data.get('next_rank_column'),
+        'step_name': data.get('step_name'),
     }
 
     try:
