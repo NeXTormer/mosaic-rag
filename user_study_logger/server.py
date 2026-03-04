@@ -106,6 +106,7 @@ def log_event():
     record = {
         'timestamp': timestamp,
         'user_id': data.get('user_id'),
+        'url': data.get('url'),
         'pipeline_id': data.get('pipeline_id'),
         'pipeline_state': pipeline_state,
         'event_type': data.get('event_type'),
