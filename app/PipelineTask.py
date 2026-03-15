@@ -30,6 +30,7 @@ from mosaicrs.pipeline_steps.GroupStyleLLMRerankerStep import GroupStyleLLMReran
 from mosaicrs.pipeline_steps.ReductionStep import ReductionStep
 from mosaicrs.pipeline_steps.RelevanceMarkingStep import RelevanceMarkingStep
 from mosaicrs.pipeline_steps.ContentExtractorStep import ContentExtractorStep
+from mosaicrs.pipeline_steps.TranslateStep import TranslateStep
 
 
 pipeline_steps_mapping = {
@@ -52,6 +53,7 @@ pipeline_steps_mapping = {
     "relevance_marking_step": RelevanceMarkingStep,
     "content_extractor": ContentExtractorStep,
     "curlie_filter": CurlieFilterStep,
+    "translate_step": TranslateStep,
 }
 
 class PipelineTask:
