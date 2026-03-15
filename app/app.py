@@ -240,7 +240,7 @@ def get_app_config():
         json.dumps(
         {
             "colorTheme": os.environ.get('COLOR_THEME', 'orange-dark'),
-            "title":  os.environ.get('APP_TITLE', 'mosaicRAG'),
+            "title":  os.environ.get('APP_TITLE', 'MosaicRAG'),
             "subTitle": os.environ.get('APP_SUBTITLE', ''),
             "pipelineConfigAllowed": os.environ.get('APP_PIPELINE_CONFIG_ALLOWED', True),
             "logsAllowed": os.environ.get('APP_LOGS_ALLOWED', True),
